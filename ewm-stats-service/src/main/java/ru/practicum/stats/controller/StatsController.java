@@ -9,6 +9,8 @@ import ru.practicum.dto.HitDto;
 import ru.practicum.dto.ViewStatsDto;
 import ru.practicum.stats.service.StatsService;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -21,17 +23,31 @@ public class StatsController {
     
     @PostMapping("/hit")
     @ResponseStatus(HttpStatus.CREATED)
-    public void addHit(@RequestBody HitDto hitDto) {
+    public void addHit(@Valid @RequestBody HitDto hitDto) {
         log.info("Получен запрос на сохранение статистики: {}", hitDto);
         statsService.addHit(hitDto);
     }
     
     @GetMapping("/stats")
     public List<ViewStatsDto> getStats(
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime start,
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime end,
-            @RequestParam(required = false) List<String> uris,
-            @RequestParam(defaultValue = "false") Boolean unique) {
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") 
+            @NotNull(message = "Start date cannot be null") 
+            LocalDateTime start,
+            
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") 
+            @NotNull(message = "End date cannot be null") 
+            LocalDateTime end,
+            
+            @RequestParam(required = false) 
+            List<String> uris,
+            
+            @RequestParam(defaultValue = "false") 
+            Boolean unique) {
+        
+        if (start.isAfter(end)) {
+            log.error("Start date {} is after end date {}", start, end);
+            throw new IllegalArgumentException("Start date must be before end date");
+        }
         
         log.info("Получен запрос на получение статистики с {} по {}, uris: {}, unique: {}", 
                 start, end, uris, unique);
