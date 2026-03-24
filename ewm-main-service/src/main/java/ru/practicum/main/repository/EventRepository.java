@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
+    
     Page<Event> findByInitiatorId(Long userId, Pageable pageable);
     
     @Query("SELECT e FROM Event e WHERE " +
@@ -26,6 +27,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
                                @Param("rangeStart") LocalDateTime rangeStart,
                                @Param("rangeEnd") LocalDateTime rangeEnd,
                                Pageable pageable);
-}
     
     boolean existsByCategoryId(Long categoryId);
+}
