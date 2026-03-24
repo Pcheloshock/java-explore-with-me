@@ -16,7 +16,13 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQL10Dialect
         format_sql: true
-    show-sql: true
+        default_schema: public
+        jdbc:
+          batch_size: 10
+        order_inserts: true
+        order_updates: true
+    show-sql: false
+    open-in-view: false
   sql:
     init:
       mode: always
@@ -37,4 +43,6 @@ logging:
   level:
     ru.practicum: DEBUG
     org.springframework.web: INFO
-    org.hibernate: INFO
+    org.hibernate: WARN
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

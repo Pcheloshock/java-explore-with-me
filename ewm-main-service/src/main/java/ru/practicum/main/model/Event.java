@@ -1,7 +1,6 @@
 package ru.practicum.main.model;
 
 import lombok.*;
-
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
@@ -37,8 +36,8 @@ public class Event {
     @JoinColumn(name = "initiator_id", nullable = false)
     private User initiator;
     
-    private Float lat;
-    private Float lon;
+    @Embedded
+    private Location location;
     
     @Column(nullable = false)
     private Boolean paid;
@@ -56,6 +55,6 @@ public class Event {
     @Column(nullable = false)
     private EventState state;
     
-    @Column(nullable = false)
+    @Column(nullable = false, length = 120)
     private String title;
 }
