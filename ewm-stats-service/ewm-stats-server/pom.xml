@@ -7,11 +7,11 @@
 
     <parent>
         <groupId>ru.practicum</groupId>
-        <artifactId>explore-with-me</artifactId>
+        <artifactId>ewm-stats-service</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>ewm-main-service</artifactId>
+    <artifactId>ewm-stats-server</artifactId>
 
     <dependencies>
         <dependency>
@@ -41,8 +41,7 @@
         </dependency>
         <dependency>
             <groupId>ru.practicum</groupId>
-            <artifactId>ewm-stats-client</artifactId>
-            <version>${project.parent.version}</version>
+            <artifactId>ewm-stats-common</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

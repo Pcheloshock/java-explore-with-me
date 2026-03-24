@@ -15,8 +15,6 @@ services:
       retries: 5
     networks:
       - ewm-network
-    volumes:
-      - stats-db-data:/var/lib/postgresql/data
 
   ewm-stats-service:
     build: ewm-stats-service
@@ -50,8 +48,6 @@ services:
       retries: 5
     networks:
       - ewm-network
-    volumes:
-      - ewm-db-data:/var/lib/postgresql/data
 
   ewm-main-service:
     build: ewm-main-service
@@ -74,7 +70,3 @@ services:
 networks:
   ewm-network:
     driver: bridge
-
-volumes:
-  stats-db-data:
-  ewm-db-data:
