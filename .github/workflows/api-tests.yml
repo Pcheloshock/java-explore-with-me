@@ -1,8 +1,89 @@
-name: Explore With Me API Tests
+name: API Tests
 
 on:
+  push:
+    branches: [ main, main_svc, stat_svc ]
   pull_request:
+    branches: [ main ]
 
 jobs:
-  build:
-    uses: yandex-praktikum/java-explore-with-me/.github/workflows/api-tests.yml@ci
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+    
+    - name: Build with Maven
+      run: mvn clean package -DskipTests
+    
+    - name: Start Docker Compose
+      run: docker-compose up -d
+    
+    - name: Wait for stats-service
+      run: |
+        echo "Waiting for stats-service..."
+        for i in {1..30}; do
+          if curl -s http://localhost:9090/actuator/health | grep -q "UP"; then
+            echo "Stats service is ready"
+            break
+          fi
+          echo "Attempt $i: Stats service not ready..."
+          sleep 2
+        done
+    
+    - name: Wait for main-service
+      run: |
+        echo "Waiting for main-service..."
+        for i in {1..30}; do
+          if curl -s http://localhost:8080/actuator/health | grep -q "UP"; then
+            echo "Main service is ready"
+            break
+          fi
+          echo "Attempt $i: Main service not ready..."
+          sleep 2
+        done
+    
+    - name: Test API endpoints
+      run: |
+        echo "=== Testing Stats Service ==="
+        
+        # Test hit endpoint
+        curl -X POST http://localhost:9090/hit \
+          -H "Content-Type: application/json" \
+          -d '{"app":"test","uri":"/test","ip":"127.0.0.1","timestamp":"2026-03-24 12:00:00"}'
+        
+        # Test stats endpoint
+        curl "http://localhost:9090/stats?start=2026-03-24%2000:00:00&end=2026-03-24%2023:59:59"
+        
+        echo -e "\n=== Testing Main Service ==="
+        
+        # Test category endpoints
+        curl -X POST http://localhost:8080/admin/categories \
+          -H "Content-Type: application/json" \
+          -d '{"name":"Test Category"}'
+        
+        curl "http://localhost:8080/categories?from=0&size=10"
+        
+        # Test validation
+        echo -e "\n=== Testing Validation ==="
+        curl -X POST http://localhost:9090/hit \
+          -H "Content-Type: application/json" \
+          -d '{"app":"test","uri":"/test","ip":"invalid","timestamp":"2026-03-24 12:00:00"}'
+    
+    - name: Show logs on failure
+      if: failure()
+      run: |
+        echo "=== Stats Service Logs ==="
+        docker-compose logs ewm-stats-service
+        echo "=== Main Service Logs ==="
+        docker-compose logs ewm-main-service
+    
+    - name: Stop Docker Compose
+      if: always()
+      run: docker-compose down
