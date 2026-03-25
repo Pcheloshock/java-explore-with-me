@@ -5,7 +5,7 @@ spring:
   application:
     name: ewm-main-service
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:6542/ewm}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ewm}
     username: ${SPRING_DATASOURCE_USERNAME:admin}
     password: ${SPRING_DATASOURCE_PASSWORD:admin}
     driver-class-name: org.postgresql.Driver
@@ -16,13 +16,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQL10Dialect
         format_sql: true
-        default_schema: public
-        jdbc:
-          batch_size: 10
-        order_inserts: true
-        order_updates: true
-    show-sql: false
-    open-in-view: false
+    show-sql: true
   sql:
     init:
       mode: always
@@ -30,19 +24,8 @@ spring:
 stats-service:
   url: ${STATS_SERVICE_URL:http://localhost:9090}
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: always
-
 logging:
   level:
     ru.practicum: DEBUG
     org.springframework.web: INFO
-    org.hibernate: WARN
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.hibernate: INFO

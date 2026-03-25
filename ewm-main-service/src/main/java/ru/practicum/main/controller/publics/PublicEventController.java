@@ -6,10 +6,12 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.dto.EventFullDto;
 import ru.practicum.main.dto.EventShortDto;
+import ru.practicum.main.service.publics.PublicEventService;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -17,6 +19,8 @@ import java.util.List;
 @RequestMapping("/events")
 @RequiredArgsConstructor
 public class PublicEventController {
+    
+    private final PublicEventService eventService;
     
     @GetMapping
     public List<EventShortDto> getEvents(
@@ -27,16 +31,17 @@ public class PublicEventController {
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeEnd,
             @RequestParam(defaultValue = "false") Boolean onlyAvailable,
             @RequestParam(required = false) String sort,
-            @RequestParam(defaultValue = "0") int from,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "0") @PositiveOrZero int from,
+            @RequestParam(defaultValue = "10") @Positive int size,
             HttpServletRequest request) {
         log.info("GET /events");
-        return new ArrayList<>();
+        return eventService.getEvents(text, categories, paid, rangeStart, rangeEnd,
+                onlyAvailable, sort, from, size, request);
     }
     
     @GetMapping("/{id}")
     public EventFullDto getEventById(@PathVariable Long id, HttpServletRequest request) {
         log.info("GET /events/{}", id);
-        throw new ru.practicum.main.exception.NotFoundException("Event not found");
+        return eventService.getEventById(id, request);
     }
 }
