@@ -22,7 +22,7 @@ spring:
       mode: always
 
 stats-service:
-  url: ${STATS_SERVICE_URL:http://localhost:9090}
+  url: http://localhost:9091  # Изменяем с 9090 на 9091
 
 logging:
   level:

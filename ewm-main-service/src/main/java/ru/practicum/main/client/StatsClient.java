@@ -30,14 +30,20 @@ public class StatsClient {
         this.restTemplate = builder
                 .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl))
                 .build();
+        log.info("StatsClient initialized with URL: {}", serverUrl);
     }
 
     public void addHit(HitDto hitDto) {
         try {
-            restTemplate.postForEntity("/hit", hitDto, Void.class);
-            log.debug("Saved hit for URI: {}", hitDto.getUri());
+            log.info("Sending hit to stats-service: app={}, uri={}, ip={}, timestamp={}",
+                    hitDto.getApp(), hitDto.getUri(), hitDto.getIp(), hitDto.getTimestamp());
+
+            // Важно: реальный HTTP запрос!
+            ResponseEntity<Void> response = restTemplate.postForEntity("/hit", hitDto, Void.class);
+
+            log.info("Hit saved successfully, status: {}", response.getStatusCode());
         } catch (Exception e) {
-            log.error("Failed to save hit: {}", e.getMessage());
+            log.error("Failed to save hit: {}", e.getMessage(), e);
         }
     }
 
@@ -63,33 +69,10 @@ public class StatsClient {
                     new ParameterizedTypeReference<List<ViewStatsDto>>() {},
                     parameters
             );
-
             return response.getBody();
         } catch (Exception e) {
             log.error("Failed to get stats: {}", e.getMessage());
             return List.of();
         }
-    }
-
-    /**
-     * Получить просмотры для списка событий
-     */
-    public Map<Long, Long> getViewsByEvents(List<Long> eventIds, LocalDateTime start, LocalDateTime end) {
-        if (eventIds == null || eventIds.isEmpty()) {
-            return Map.of();
-        }
-
-        List<String> uris = eventIds.stream()
-                .map(id -> "/events/" + id)
-                .toList();
-
-        List<ViewStatsDto> stats = getStats(start, end, uris, false);
-
-        return stats.stream()
-                .collect(java.util.stream.Collectors.toMap(
-                        stat -> Long.parseLong(stat.getUri().replace("/events/", "")),
-                        ViewStatsDto::getHits,
-                        (a, b) -> a
-                ));
     }
 }

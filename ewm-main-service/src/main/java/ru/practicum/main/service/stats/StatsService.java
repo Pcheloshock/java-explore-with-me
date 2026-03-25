@@ -23,13 +23,17 @@ public class StatsService {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public void saveHit(HttpServletRequest request) {
-        HitDto hitDto = new HitDto(
-                "ewm-main-service",
-                request.getRequestURI(),
-                request.getRemoteAddr(),
-                LocalDateTime.now().format(FORMATTER)
-        );
-        statsClient.addHit(hitDto);
+        try {
+            HitDto hitDto = new HitDto(
+                    "ewm-main-service",
+                    request.getRequestURI(),
+                    request.getRemoteAddr(),
+                    LocalDateTime.now().format(FORMATTER)
+            );
+            statsClient.addHit(hitDto);
+        } catch (Exception e) {
+            log.error("Failed to save hit: {}", e.getMessage());
+        }
     }
 
     public Map<Long, Long> getViewsForEvents(List<Long> eventIds, LocalDateTime start, LocalDateTime end) {
@@ -41,17 +45,21 @@ public class StatsService {
                 .map(id -> "/events/" + id)
                 .collect(Collectors.toList());
 
-        List<ViewStatsDto> stats = statsClient.getStats(start, end, uris, false);
-
-        return stats.stream()
-                .collect(Collectors.toMap(
-                        stat -> Long.parseLong(stat.getUri().substring(stat.getUri().lastIndexOf("/") + 1)),
-                        ViewStatsDto::getHits
-                ));
+        try {
+            List<ViewStatsDto> stats = statsClient.getStats(start, end, uris, false);
+            return stats.stream()
+                    .collect(Collectors.toMap(
+                            stat -> Long.parseLong(stat.getUri().substring(stat.getUri().lastIndexOf("/") + 1)),
+                            ViewStatsDto::getHits,
+                            (a, b) -> a
+                    ));
+        } catch (Exception e) {
+            log.error("Failed to get views: {}", e.getMessage());
+            return Map.of();
+        }
     }
 
     public Long getViewsForEvent(Long eventId, LocalDateTime start, LocalDateTime end) {
-        Map<Long, Long> views = getViewsForEvents(List.of(eventId), start, end);
-        return views.getOrDefault(eventId, 0L);
+        return getViewsForEvents(List.of(eventId), start, end).getOrDefault(eventId, 0L);
     }
 }

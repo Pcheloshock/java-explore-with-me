@@ -11,14 +11,14 @@ import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.model.Category;
 import ru.practicum.main.repository.CategoryRepository;
-import ru.practicum.main.repository.EventRepository;
+import ru.practicum.main.repository.EventRepository;  // Убедитесь, что этот импорт есть
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class AdminCategoryServiceImpl implements AdminCategoryService {
-    
+
     private final CategoryRepository categoryRepository;
     private final EventRepository eventRepository;
     

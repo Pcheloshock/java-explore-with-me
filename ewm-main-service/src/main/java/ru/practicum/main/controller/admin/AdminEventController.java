@@ -6,6 +6,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.dto.EventFullDto;
 import ru.practicum.main.dto.UpdateEventAdminRequest;
+import ru.practicum.main.exception.BadRequestException;  // Добавить этот импорт
 import ru.practicum.main.model.EventState;
 import ru.practicum.main.service.admin.AdminEventService;
 
@@ -20,9 +21,9 @@ import java.util.List;
 @RequestMapping("/admin/events")
 @RequiredArgsConstructor
 public class AdminEventController {
-    
+
     private final AdminEventService eventService;
-    
+
     @GetMapping
     public List<EventFullDto> getEvents(
             @RequestParam(required = false) List<Long> users,
@@ -32,10 +33,18 @@ public class AdminEventController {
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeEnd,
             @RequestParam(defaultValue = "0") @PositiveOrZero int from,
             @RequestParam(defaultValue = "10") @Positive int size) {
-        log.info("GET /admin/events");
+
+        log.info("GET /admin/events with users={}, states={}, categories={}, rangeStart={}, rangeEnd={}, from={}, size={}",
+                users, states, categories, rangeStart, rangeEnd, from, size);
+
+        // Валидация дат
+        if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
+            throw new BadRequestException("Start date must be before end date");
+        }
+
         return eventService.getEvents(users, states, categories, rangeStart, rangeEnd, from, size);
     }
-    
+
     @PatchMapping("/{eventId}")
     public EventFullDto updateEvent(@PathVariable Long eventId,
                                     @Valid @RequestBody UpdateEventAdminRequest updateRequest) {

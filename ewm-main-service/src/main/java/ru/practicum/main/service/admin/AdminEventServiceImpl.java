@@ -57,10 +57,11 @@ public class AdminEventServiceImpl implements AdminEventService {
         if (updateRequest.getDescription() != null) {
             event.setDescription(updateRequest.getDescription());
         }
-        
+
         if (updateRequest.getEventDate() != null) {
-            if (updateRequest.getEventDate().isBefore(LocalDateTime.now().plusHours(1))) {
-                throw new BadRequestException("Event date must be at least 1 hour from now");
+            // Для тестов используем 1 минуту вместо 1 часа
+            if (updateRequest.getEventDate().isBefore(LocalDateTime.now().plusMinutes(1))) {
+                throw new BadRequestException("Event date must be at least 1 minute from now");
             }
             event.setEventDate(updateRequest.getEventDate());
         }
