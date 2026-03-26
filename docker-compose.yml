@@ -3,7 +3,7 @@ services:
     image: postgres:14-alpine
     container_name: stats-db
     ports:
-      - "5433:5432"  # Изменено с 6544 на 5433
+      - "5433:5432"
     environment:
       POSTGRES_DB: stats
       POSTGRES_USER: admin
@@ -20,7 +20,7 @@ services:
     image: postgres:14-alpine
     container_name: ewm-db
     ports:
-      - "5434:5432"  # Изменено с 5435 на 5434
+      - "5434:5432"
     environment:
       POSTGRES_DB: ewm
       POSTGRES_USER: admin
@@ -39,7 +39,7 @@ services:
       dockerfile: Dockerfile
     container_name: ewm-stats-service
     ports:
-      - "9091:9090"  # Изменено с 9092 на 9091
+      - "9091:9090"
     depends_on:
       stats-db:
         condition: service_healthy
@@ -50,6 +50,12 @@ services:
       SERVER_PORT: 9090
     networks:
       - ewm-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/actuator/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 40s
 
   ewm-main-service:
     build:
@@ -57,12 +63,12 @@ services:
       dockerfile: Dockerfile
     container_name: ewm-main-service
     ports:
-      - "8081:8080"  # Изменено с 8082 на 8081
+      - "8081:8080"
     depends_on:
       ewm-db:
         condition: service_healthy
       ewm-stats-service:
-        condition: service_started
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://ewm-db:5432/ewm
       SPRING_DATASOURCE_USERNAME: admin
@@ -70,6 +76,12 @@ services:
       STATS_SERVICE_URL: http://ewm-stats-service:9090
     networks:
       - ewm-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 90s
 
 networks:
   ewm-network:

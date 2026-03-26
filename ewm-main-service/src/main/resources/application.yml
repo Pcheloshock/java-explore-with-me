@@ -1,5 +1,6 @@
 server:
   port: 8080
+  shutdown: graceful
 
 spring:
   application:
@@ -15,21 +16,20 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQL10Dialect
-        format_sql: true
-    show-sql: true
+        format_sql: false
+        jdbc:
+          batch_size: 20
+    show-sql: false
+    open-in-view: false
   sql:
     init:
       mode: always
-  jackson:
-    serialization:
-      write-dates-as-timestamps: false
-    date-format: yyyy-MM-dd HH:mm:ss
 
 stats-service:
   url: http://ewm-stats-service:9090
 
 logging:
   level:
-    ru.practicum: DEBUG
-    org.springframework.web: INFO
-    org.hibernate: INFO
+    ru.practicum: INFO
+    org.springframework: WARN
+    org.hibernate: WARN
