@@ -1,6 +1,5 @@
 package ru.practicum.main.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,11 +7,14 @@ import ru.practicum.main.model.EventStateAction;
 
 import javax.validation.constraints.*;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateEventUserRequest {
+    
     @Size(min = 20, max = 2000)
     private String annotation;
     
@@ -21,8 +23,7 @@ public class UpdateEventUserRequest {
     @Size(min = 20, max = 7000)
     private String description;
     
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime eventDate;
+    private String eventDate;
     
     private LocationDto location;
     
@@ -37,4 +38,19 @@ public class UpdateEventUserRequest {
     
     @Size(min = 3, max = 120)
     private String title;
+    
+    public LocalDateTime getEventDateAsLocalDateTime() {
+        if (eventDate == null) {
+            return null;
+        }
+        try {
+            return LocalDateTime.parse(eventDate, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        } catch (DateTimeParseException e) {
+            try {
+                return LocalDateTime.parse(eventDate, DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
+            } catch (DateTimeParseException ex) {
+                return LocalDateTime.parse(eventDate, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            }
+        }
+    }
 }

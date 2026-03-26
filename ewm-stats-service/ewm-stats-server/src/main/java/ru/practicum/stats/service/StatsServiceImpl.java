@@ -17,21 +17,21 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class StatsServiceImpl implements StatsService {
-    
+
     private final StatsRepository statsRepository;
-    
+
     @Override
     public void addHit(HitDto hitDto) {
         Hit hit = HitMapper.toHit(hitDto);
         statsRepository.save(hit);
         log.debug("Сохранена статистика для uri: {}", hit.getUri());
     }
-    
+
     @Override
-    public List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end, 
+    public List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end,
                                        List<String> uris, Boolean unique) {
         List<Object[]> results;
-        
+
         if (uris == null || uris.isEmpty()) {
             if (unique) {
                 results = statsRepository.getUniqueStats(start, end);
@@ -45,7 +45,7 @@ public class StatsServiceImpl implements StatsService {
                 results = statsRepository.getAllStatsByUris(start, end, uris);
             }
         }
-        
+
         return results.stream()
                 .map(row -> new ViewStatsDto(
                         (String) row[0],

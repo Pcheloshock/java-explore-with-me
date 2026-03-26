@@ -26,68 +26,68 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 public class AdminCompilationServiceImpl implements AdminCompilationService {
-    
+
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
     private final ParticipationRequestRepository requestRepository;
-    
+
     @Override
     public CompilationDto addCompilation(NewCompilationDto newCompilationDto) {
         Set<Event> events = new HashSet<>();
         if (newCompilationDto.getEvents() != null && !newCompilationDto.getEvents().isEmpty()) {
             events = new HashSet<>(eventRepository.findAllById(newCompilationDto.getEvents()));
         }
-        
+
         Compilation compilation = Compilation.builder()
                 .title(newCompilationDto.getTitle())
                 .pinned(newCompilationDto.getPinned() != null ? newCompilationDto.getPinned() : false)
                 .events(events)
                 .build();
-        
+
         Compilation saved = compilationRepository.save(compilation);
         log.info("Added compilation: {}", saved.getTitle());
-        
+
         return mapToDto(saved);
     }
-    
+
     @Override
     public CompilationDto updateCompilation(Long compId, UpdateCompilationRequest updateRequest) {
         Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new NotFoundException("Compilation not found"));
-        
+
         if (updateRequest.getTitle() != null) {
             compilation.setTitle(updateRequest.getTitle());
         }
-        
+
         if (updateRequest.getPinned() != null) {
             compilation.setPinned(updateRequest.getPinned());
         }
-        
+
         if (updateRequest.getEvents() != null) {
             Set<Event> events = new HashSet<>(eventRepository.findAllById(updateRequest.getEvents()));
             compilation.setEvents(events);
         }
-        
+
         Compilation updated = compilationRepository.save(compilation);
         log.info("Updated compilation: {}", updated.getTitle());
-        
+
         return mapToDto(updated);
     }
-    
+
     @Override
     public void deleteCompilation(Long compId) {
         Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new NotFoundException("Compilation not found"));
-        
+
         compilationRepository.delete(compilation);
         log.info("Deleted compilation: {}", compilation.getTitle());
     }
-    
+
     private CompilationDto mapToDto(Compilation compilation) {
         List<EventShortDto> events = compilation.getEvents().stream()
                 .map(this::mapEventToShortDto)
                 .collect(Collectors.toList());
-        
+
         return new CompilationDto(
                 compilation.getId(),
                 events,
@@ -95,10 +95,10 @@ public class AdminCompilationServiceImpl implements AdminCompilationService {
                 compilation.getTitle()
         );
     }
-    
+
     private EventShortDto mapEventToShortDto(Event event) {
         long confirmedRequests = requestRepository.countByEventIdAndStatus(event.getId(), RequestStatus.CONFIRMED);
-        
+
         return new EventShortDto(
                 event.getId(),
                 event.getAnnotation(),

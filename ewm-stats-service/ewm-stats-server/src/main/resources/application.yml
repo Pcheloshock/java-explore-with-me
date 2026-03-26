@@ -6,9 +6,9 @@ spring:
   application:
     name: ewm-stats-service
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://stats-db:5432/stats}
-    username: ${SPRING_DATASOURCE_USERNAME:admin}
-    password: ${SPRING_DATASOURCE_PASSWORD:admin}
+    url: jdbc:postgresql://localhost:5432/stats
+    username: admin
+    password: admin
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -26,4 +26,3 @@ logging:
   level:
     ru.practicum: DEBUG
     org.springframework.web: INFO
-    org.hibernate: INFO

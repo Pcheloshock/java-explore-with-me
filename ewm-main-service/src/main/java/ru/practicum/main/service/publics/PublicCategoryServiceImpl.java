@@ -19,9 +19,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PublicCategoryServiceImpl implements PublicCategoryService {
-    
+
     private final CategoryRepository categoryRepository;
-    
+
     @Override
     public List<CategoryDto> getCategories(int from, int size) {
         Pageable pageable = PageRequest.of(from / size, size);
@@ -29,14 +29,14 @@ public class PublicCategoryServiceImpl implements PublicCategoryService {
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
-    
+
     @Override
     public CategoryDto getCategoryById(Long catId) {
         Category category = categoryRepository.findById(catId)
                 .orElseThrow(() -> new NotFoundException("Category with id " + catId + " not found"));
         return mapToDto(category);
     }
-    
+
     private CategoryDto mapToDto(Category category) {
         return new CategoryDto(category.getId(), category.getName());
     }

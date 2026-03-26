@@ -38,20 +38,20 @@ public class PrivateEventServiceImpl implements PrivateEventService {
                 .map(this::mapToShortDto)
                 .collect(Collectors.toList());
     }
-
+    
     @Override
     public EventFullDto addEvent(Long userId, NewEventDto newEventDto) {
         User initiator = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
-
+        
         Category category = categoryRepository.findById(newEventDto.getCategory())
                 .orElseThrow(() -> new NotFoundException("Category not found"));
-
-        // Проверка даты события - изменяем для тестов
+        
+        LocalDateTime eventDate = newEventDto.getEventDateAsLocalDateTime();
         LocalDateTime now = LocalDateTime.now();
-        // Для тестов используем 2 минуты вместо 2 часов
-        if (newEventDto.getEventDate().isBefore(now.plusMinutes(2))) {
-            throw new BadRequestException("Event date must be at least 2 minutes from now");
+        
+        if (eventDate.isBefore(now.plusHours(2))) {
+            throw new BadRequestException("Event date must be at least 2 hours from now");
         }
         
         Location location = Location.builder()
@@ -64,7 +64,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
                 .category(category)
                 .createdOn(now)
                 .description(newEventDto.getDescription())
-                .eventDate(newEventDto.getEventDate())
+                .eventDate(eventDate)
                 .initiator(initiator)
                 .location(location)
                 .paid(newEventDto.getPaid() != null ? newEventDto.getPaid() : false)
@@ -92,7 +92,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         
         return mapToFullDto(event);
     }
-
+    
     @Override
     public EventFullDto updateEvent(Long userId, Long eventId, UpdateEventUserRequest updateRequest) {
         Event event = eventRepository.findById(eventId)
@@ -106,7 +106,6 @@ public class PrivateEventServiceImpl implements PrivateEventService {
             throw new BadRequestException("Only pending or canceled events can be changed");
         }
         
-        // Обновляем поля
         if (updateRequest.getAnnotation() != null) {
             event.setAnnotation(updateRequest.getAnnotation());
         }
@@ -120,13 +119,13 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         if (updateRequest.getDescription() != null) {
             event.setDescription(updateRequest.getDescription());
         }
-
+        
         if (updateRequest.getEventDate() != null) {
-            // Для тестов используем 2 минуты вместо 2 часов
-            if (updateRequest.getEventDate().isBefore(LocalDateTime.now().plusMinutes(2))) {
-                throw new BadRequestException("Event date must be at least 2 minutes from now");
+            LocalDateTime eventDate = updateRequest.getEventDateAsLocalDateTime();
+            if (eventDate.isBefore(LocalDateTime.now().plusHours(2))) {
+                throw new BadRequestException("Event date must be at least 2 hours from now");
             }
-            event.setEventDate(updateRequest.getEventDate());
+            event.setEventDate(eventDate);
         }
         
         if (updateRequest.getLocation() != null) {

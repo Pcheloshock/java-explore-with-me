@@ -17,17 +17,17 @@ import java.util.List;
 @RequestMapping("/users/{userId}/events")
 @RequiredArgsConstructor
 public class PrivateEventController {
-    
+
     private final PrivateEventService eventService;
-    
+
     @GetMapping
     public List<EventShortDto> getEvents(@PathVariable Long userId,
-                                          @RequestParam(defaultValue = "0") @PositiveOrZero int from,
-                                          @RequestParam(defaultValue = "10") @Positive int size) {
+                                         @RequestParam(defaultValue = "0") @PositiveOrZero int from,
+                                         @RequestParam(defaultValue = "10") @Positive int size) {
         log.info("GET /users/{}/events with from={}, size={}", userId, from, size);
         return eventService.getEvents(userId, from, size);
     }
-    
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public EventFullDto addEvent(@PathVariable Long userId,
@@ -35,14 +35,14 @@ public class PrivateEventController {
         log.info("POST /users/{}/events", userId);
         return eventService.addEvent(userId, newEventDto);
     }
-    
+
     @GetMapping("/{eventId}")
     public EventFullDto getEvent(@PathVariable Long userId,
                                  @PathVariable Long eventId) {
         log.info("GET /users/{}/events/{}", userId, eventId);
         return eventService.getEvent(userId, eventId);
     }
-    
+
     @PatchMapping("/{eventId}")
     public EventFullDto updateEvent(@PathVariable Long userId,
                                     @PathVariable Long eventId,

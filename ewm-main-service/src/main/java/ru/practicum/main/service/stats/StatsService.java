@@ -49,7 +49,13 @@ public class StatsService {
             List<ViewStatsDto> stats = statsClient.getStats(start, end, uris, false);
             return stats.stream()
                     .collect(Collectors.toMap(
-                            stat -> Long.parseLong(stat.getUri().substring(stat.getUri().lastIndexOf("/") + 1)),
+                            stat -> {
+                                String uri = stat.getUri();
+                                if (uri.startsWith("/events/")) {
+                                    return Long.parseLong(uri.substring(8));
+                                }
+                                return 0L;
+                            },
                             ViewStatsDto::getHits,
                             (a, b) -> a
                     ));

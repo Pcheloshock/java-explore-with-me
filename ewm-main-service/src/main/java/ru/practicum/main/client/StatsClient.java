@@ -8,7 +8,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.DefaultUriBuilderFactory;
 import ru.practicum.dto.HitDto;
 import ru.practicum.dto.ViewStatsDto;
 
@@ -22,13 +21,11 @@ import java.util.Map;
 public class StatsClient {
 
     private final RestTemplate restTemplate;
-    private final String serverUrl;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public StatsClient(@Value("${stats-service.url}") String serverUrl, RestTemplateBuilder builder) {
-        this.serverUrl = serverUrl;
         this.restTemplate = builder
-                .uriTemplateHandler(new DefaultUriBuilderFactory(serverUrl))
+                .rootUri(serverUrl)
                 .build();
         log.info("StatsClient initialized with URL: {}", serverUrl);
     }
@@ -38,9 +35,7 @@ public class StatsClient {
             log.info("Sending hit to stats-service: app={}, uri={}, ip={}, timestamp={}",
                     hitDto.getApp(), hitDto.getUri(), hitDto.getIp(), hitDto.getTimestamp());
 
-            // Важно: реальный HTTP запрос!
             ResponseEntity<Void> response = restTemplate.postForEntity("/hit", hitDto, Void.class);
-
             log.info("Hit saved successfully, status: {}", response.getStatusCode());
         } catch (Exception e) {
             log.error("Failed to save hit: {}", e.getMessage(), e);
@@ -50,20 +45,26 @@ public class StatsClient {
     public List<ViewStatsDto> getStats(LocalDateTime start, LocalDateTime end,
                                        List<String> uris, Boolean unique) {
         try {
-            StringBuilder urlBuilder = new StringBuilder("/stats?start={start}&end={end}&unique={unique}");
-            if (uris != null && !uris.isEmpty()) {
-                urlBuilder.append("&uris={uris}");
-            }
-
+            String url = "/stats?start={start}&end={end}&unique={unique}";
+            
             Map<String, Object> parameters = Map.of(
                     "start", start.format(FORMATTER),
                     "end", end.format(FORMATTER),
-                    "unique", unique,
-                    "uris", uris != null ? String.join(",", uris) : ""
+                    "unique", unique
             );
+            
+            if (uris != null && !uris.isEmpty()) {
+                url += "&uris={uris}";
+                parameters = Map.of(
+                        "start", start.format(FORMATTER),
+                        "end", end.format(FORMATTER),
+                        "unique", unique,
+                        "uris", String.join(",", uris)
+                );
+            }
 
             ResponseEntity<List<ViewStatsDto>> response = restTemplate.exchange(
-                    urlBuilder.toString(),
+                    url,
                     HttpMethod.GET,
                     null,
                     new ParameterizedTypeReference<List<ViewStatsDto>>() {},
@@ -71,7 +72,7 @@ public class StatsClient {
             );
             return response.getBody();
         } catch (Exception e) {
-            log.error("Failed to get stats: {}", e.getMessage());
+            log.error("Failed to get stats: {}", e.getMessage(), e);
             return List.of();
         }
     }

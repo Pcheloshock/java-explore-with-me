@@ -15,9 +15,9 @@ import java.util.List;
 @RequestMapping("/compilations")
 @RequiredArgsConstructor
 public class PublicCompilationController {
-    
+
     private final PublicCompilationService compilationService;
-    
+
     @GetMapping
     public List<CompilationDto> getCompilations(
             @RequestParam(required = false) Boolean pinned,
@@ -26,7 +26,7 @@ public class PublicCompilationController {
         log.info("GET /compilations with pinned={}, from={}, size={}", pinned, from, size);
         return compilationService.getCompilations(pinned, from, size);
     }
-    
+
     @GetMapping("/{compId}")
     public CompilationDto getCompilation(@PathVariable Long compId) {
         log.info("GET /compilations/{}", compId);

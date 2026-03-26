@@ -18,24 +18,24 @@ import java.util.List;
 @RequestMapping("/admin/users")
 @RequiredArgsConstructor
 public class AdminUserController {
-    
+
     private final AdminUserService userService;
-    
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UserDto addUser(@Valid @RequestBody NewUserRequest newUserRequest) {
         log.info("POST /admin/users with name: {}", newUserRequest.getName());
         return userService.addUser(newUserRequest);
     }
-    
+
     @GetMapping
     public List<UserDto> getUsers(@RequestParam(required = false) List<Long> ids,
-                                   @RequestParam(defaultValue = "0") @PositiveOrZero int from,
-                                   @RequestParam(defaultValue = "10") @Positive int size) {
+                                  @RequestParam(defaultValue = "0") @PositiveOrZero int from,
+                                  @RequestParam(defaultValue = "10") @Positive int size) {
         log.info("GET /admin/users with ids={}, from={}, size={}", ids, from, size);
         return userService.getUsers(ids, from, size);
     }
-    
+
     @DeleteMapping("/{userId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteUser(@PathVariable Long userId) {

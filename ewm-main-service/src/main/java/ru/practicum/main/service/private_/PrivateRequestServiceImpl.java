@@ -23,130 +23,130 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 public class PrivateRequestServiceImpl implements PrivateRequestService {
-    
+
     private final ParticipationRequestRepository requestRepository;
     private final UserRepository userRepository;
     private final EventRepository eventRepository;
-    
+
     @Override
     @Transactional(readOnly = true)
     public List<ParticipationRequestDto> getUserRequests(Long userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
-        
+
         return requestRepository.findByRequesterId(userId).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
-    
+
     @Override
     public ParticipationRequestDto addRequest(Long userId, Long eventId) {
         User requester = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
-        
+
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Event not found"));
-        
+
         // Проверка: нельзя добавить повторный запрос
         if (requestRepository.findByRequesterIdAndEventId(userId, eventId).isPresent()) {
             throw new ConflictException("Request already exists");
         }
-        
+
         // Проверка: инициатор события не может добавить запрос на участие в своём событии
         if (event.getInitiator().getId().equals(userId)) {
             throw new ConflictException("Initiator cannot request participation in own event");
         }
-        
+
         // Проверка: нельзя участвовать в неопубликованном событии
         if (event.getState() != EventState.PUBLISHED) {
             throw new ConflictException("Cannot participate in unpublished event");
         }
-        
+
         // Проверка лимита участников
         long confirmedRequests = requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED);
         if (event.getParticipantLimit() > 0 && confirmedRequests >= event.getParticipantLimit()) {
             throw new ConflictException("Participant limit has been reached");
         }
-        
+
         RequestStatus status = RequestStatus.PENDING;
         if (event.getParticipantLimit() == 0 || !event.getRequestModeration()) {
             status = RequestStatus.CONFIRMED;
         }
-        
+
         ParticipationRequest request = ParticipationRequest.builder()
                 .created(LocalDateTime.now())
                 .event(event)
                 .requester(requester)
                 .status(status)
                 .build();
-        
+
         ParticipationRequest saved = requestRepository.save(request);
         log.info("User {} requested participation in event {}", userId, eventId);
-        
+
         return mapToDto(saved);
     }
-    
+
     @Override
     public ParticipationRequestDto cancelRequest(Long userId, Long requestId) {
         ParticipationRequest request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new NotFoundException("Request not found"));
-        
+
         if (!request.getRequester().getId().equals(userId)) {
             throw new NotFoundException("Request not found for this user");
         }
-        
+
         request.setStatus(RequestStatus.CANCELED);
         ParticipationRequest canceled = requestRepository.save(request);
         log.info("User {} canceled request {}", userId, requestId);
-        
+
         return mapToDto(canceled);
     }
-    
+
     @Override
     @Transactional(readOnly = true)
     public List<ParticipationRequestDto> getEventRequests(Long userId, Long eventId) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Event not found"));
-        
+
         if (!event.getInitiator().getId().equals(userId)) {
             throw new NotFoundException("User is not the initiator of this event");
         }
-        
+
         return requestRepository.findByEventId(eventId).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
-    
+
     @Override
     public EventRequestStatusUpdateResult updateRequestStatus(Long userId, Long eventId,
-                                                               EventRequestStatusUpdateRequest updateRequest) {
+                                                              EventRequestStatusUpdateRequest updateRequest) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Event not found"));
-        
+
         if (!event.getInitiator().getId().equals(userId)) {
             throw new NotFoundException("User is not the initiator of this event");
         }
-        
+
         if (event.getParticipantLimit() == 0) {
             throw new BadRequestException("Event has no participant limit");
         }
-        
+
         long confirmedRequests = requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED);
         long availableSlots = event.getParticipantLimit() - confirmedRequests;
-        
+
         if (updateRequest.getStatus() == RequestStatus.CONFIRMED && availableSlots < updateRequest.getRequestIds().size()) {
             throw new ConflictException("Not enough available slots");
         }
-        
+
         List<ParticipationRequest> requests = requestRepository.findAllById(updateRequest.getRequestIds());
         List<ParticipationRequestDto> confirmed = new ArrayList<>();
         List<ParticipationRequestDto> rejected = new ArrayList<>();
-        
+
         for (ParticipationRequest request : requests) {
             if (request.getStatus() != RequestStatus.PENDING) {
                 throw new BadRequestException("Request status must be PENDING");
             }
-            
+
             if (updateRequest.getStatus() == RequestStatus.CONFIRMED) {
                 if (availableSlots > 0) {
                     request.setStatus(RequestStatus.CONFIRMED);
@@ -161,13 +161,13 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
                 rejected.add(mapToDto(request));
             }
         }
-        
+
         requestRepository.saveAll(requests);
         log.info("Updated request statuses for event {}", eventId);
-        
+
         return new EventRequestStatusUpdateResult(confirmed, rejected);
     }
-    
+
     private ParticipationRequestDto mapToDto(ParticipationRequest request) {
         return new ParticipationRequestDto(
                 request.getId(),

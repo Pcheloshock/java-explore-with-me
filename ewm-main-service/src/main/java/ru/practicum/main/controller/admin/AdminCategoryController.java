@@ -15,23 +15,23 @@ import javax.validation.Valid;
 @RequestMapping("/admin/categories")
 @RequiredArgsConstructor
 public class AdminCategoryController {
-    
+
     private final AdminCategoryService categoryService;
-    
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CategoryDto addCategory(@Valid @RequestBody NewCategoryDto newCategoryDto) {
         log.info("POST /admin/categories with name: {}", newCategoryDto.getName());
         return categoryService.addCategory(newCategoryDto);
     }
-    
+
     @PatchMapping("/{catId}")
     public CategoryDto updateCategory(@PathVariable Long catId,
                                       @Valid @RequestBody CategoryDto categoryDto) {
         log.info("PATCH /admin/categories/{} with name: {}", catId, categoryDto.getName());
         return categoryService.updateCategory(catId, categoryDto);
     }
-    
+
     @DeleteMapping("/{catId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteCategory(@PathVariable Long catId) {

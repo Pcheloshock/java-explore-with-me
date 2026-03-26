@@ -15,9 +15,9 @@ import java.util.List;
 @RequestMapping("/categories")
 @RequiredArgsConstructor
 public class PublicCategoryController {
-    
+
     private final PublicCategoryService categoryService;
-    
+
     @GetMapping
     public List<CategoryDto> getCategories(
             @RequestParam(defaultValue = "0") @PositiveOrZero int from,
@@ -25,7 +25,7 @@ public class PublicCategoryController {
         log.info("GET /categories with from={}, size={}", from, size);
         return categoryService.getCategories(from, size);
     }
-    
+
     @GetMapping("/{catId}")
     public CategoryDto getCategoryById(@PathVariable Long catId) {
         log.info("GET /categories/{}", catId);

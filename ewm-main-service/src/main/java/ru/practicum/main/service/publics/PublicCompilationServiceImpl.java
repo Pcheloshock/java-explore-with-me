@@ -23,39 +23,39 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PublicCompilationServiceImpl implements PublicCompilationService {
-    
+
     private final CompilationRepository compilationRepository;
     private final ParticipationRequestRepository requestRepository;
-    
+
     @Override
     public List<CompilationDto> getCompilations(Boolean pinned, int from, int size) {
         Pageable pageable = PageRequest.of(from / size, size);
-        
+
         List<Compilation> compilations;
         if (pinned != null) {
             compilations = compilationRepository.findByPinned(pinned, pageable).getContent();
         } else {
             compilations = compilationRepository.findAll(pageable).getContent();
         }
-        
+
         return compilations.stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
-    
+
     @Override
     public CompilationDto getCompilation(Long compId) {
         Compilation compilation = compilationRepository.findById(compId)
                 .orElseThrow(() -> new NotFoundException("Compilation not found"));
-        
+
         return mapToDto(compilation);
     }
-    
+
     private CompilationDto mapToDto(Compilation compilation) {
         List<EventShortDto> events = compilation.getEvents().stream()
                 .map(this::mapEventToShortDto)
                 .collect(Collectors.toList());
-        
+
         return new CompilationDto(
                 compilation.getId(),
                 events,
@@ -63,10 +63,10 @@ public class PublicCompilationServiceImpl implements PublicCompilationService {
                 compilation.getTitle()
         );
     }
-    
+
     private EventShortDto mapEventToShortDto(Event event) {
         long confirmedRequests = requestRepository.countByEventIdAndStatus(event.getId(), RequestStatus.CONFIRMED);
-        
+
         return new EventShortDto(
                 event.getId(),
                 event.getAnnotation(),

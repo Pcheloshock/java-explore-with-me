@@ -5,9 +5,9 @@ spring:
   application:
     name: ewm-main-service
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ewm}
-    username: ${SPRING_DATASOURCE_USERNAME:admin}
-    password: ${SPRING_DATASOURCE_PASSWORD:admin}
+    url: jdbc:postgresql://ewm-db:5432/ewm
+    username: admin
+    password: admin
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -20,9 +20,13 @@ spring:
   sql:
     init:
       mode: always
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    date-format: yyyy-MM-dd HH:mm:ss
 
 stats-service:
-  url: http://localhost:9091  # Изменяем с 9090 на 9091
+  url: http://ewm-stats-service:9090
 
 logging:
   level:

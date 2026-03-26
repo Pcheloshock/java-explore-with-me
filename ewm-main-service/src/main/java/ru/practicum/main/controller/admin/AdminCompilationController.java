@@ -16,23 +16,23 @@ import javax.validation.Valid;
 @RequestMapping("/admin/compilations")
 @RequiredArgsConstructor
 public class AdminCompilationController {
-    
+
     private final AdminCompilationService compilationService;
-    
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CompilationDto addCompilation(@Valid @RequestBody NewCompilationDto newCompilationDto) {
         log.info("POST /admin/compilations with title: {}", newCompilationDto.getTitle());
         return compilationService.addCompilation(newCompilationDto);
     }
-    
+
     @PatchMapping("/{compId}")
     public CompilationDto updateCompilation(@PathVariable Long compId,
                                             @Valid @RequestBody UpdateCompilationRequest updateRequest) {
         log.info("PATCH /admin/compilations/{}", compId);
         return compilationService.updateCompilation(compId, updateRequest);
     }
-    
+
     @DeleteMapping("/{compId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteCompilation(@PathVariable Long compId) {
