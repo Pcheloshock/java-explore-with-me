@@ -164,7 +164,8 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
 
         for (ParticipationRequest request : requests) {
             if (request.getStatus() != RequestStatus.PENDING) {
-                throw new BadRequestException("Request status must be PENDING");
+                // Было BadRequestException, должно быть ConflictException
+                throw new ConflictException("Request status must be PENDING");
             }
 
             if (updateRequest.getStatus() == RequestStatus.CONFIRMED) {
