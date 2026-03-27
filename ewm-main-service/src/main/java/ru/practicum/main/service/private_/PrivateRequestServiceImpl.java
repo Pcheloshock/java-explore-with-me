@@ -95,6 +95,11 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
             throw new NotFoundException("Request not found for this user");
         }
 
+        // Проверка: нельзя отменить уже принятую заявку
+        if (request.getStatus() == RequestStatus.CONFIRMED) {
+            throw new ConflictException("Cannot cancel already confirmed request");
+        }
+
         request.setStatus(RequestStatus.CANCELED);
         ParticipationRequest canceled = requestRepository.save(request);
         log.info("User {} canceled request {}", userId, requestId);
