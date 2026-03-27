@@ -16,6 +16,7 @@ import ru.practicum.main.repository.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -47,11 +48,11 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Event not found"));
 
-        log.info("=== ADD REQUEST === userId={}, eventId={}", userId, eventId);
-        log.info("Event details: requestModeration={}, participantLimit={}, state={}", 
-            event.getRequestModeration(), event.getParticipantLimit(), event.getState());
+        log.info("ADD REQUEST: userId={}, eventId={}, requestModeration={}", 
+            userId, eventId, event.getRequestModeration());
 
-        if (requestRepository.findByRequesterIdAndEventId(userId, eventId).isPresent()) {
+        Optional<ParticipationRequest> existing = requestRepository.findByRequesterIdAndEventId(userId, eventId);
+        if (existing.isPresent()) {
             throw new ConflictException("Request already exists");
         }
 
@@ -72,8 +73,6 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
         if (event.getParticipantLimit() == 0 || !event.getRequestModeration()) {
             status = RequestStatus.CONFIRMED;
         }
-        
-        log.info("Calculated status: {}", status);
 
         ParticipationRequest request = ParticipationRequest.builder()
                 .created(LocalDateTime.now())
@@ -84,47 +83,43 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
 
         ParticipationRequest saved = requestRepository.save(request);
         log.info("Saved request: id={}, status={}", saved.getId(), saved.getStatus());
-        log.info("=== END ADD REQUEST ===");
 
         return mapToDto(saved);
     }
 
     @Override
     public ParticipationRequestDto cancelRequest(Long userId, Long requestId) {
-        log.info("=== CANCEL REQUEST === userId={}, requestId={}", userId, requestId);
-        
         ParticipationRequest request = requestRepository.findById(requestId)
                 .orElseThrow(() -> new NotFoundException("Request not found"));
 
-        log.info("Found request: id={}, status={}, requesterId={}", 
-            request.getId(), request.getStatus(), request.getRequester().getId());
-
         if (!request.getRequester().getId().equals(userId)) {
-            log.warn("Requester mismatch: request.requesterId={}, userId={}", 
-                request.getRequester().getId(), userId);
             throw new NotFoundException("Request not found for this user");
         }
 
-        log.info("Request status before cancellation: {}", request.getStatus());
+        log.info("Cancel request: id={}, status={}", requestId, request.getStatus());
         
-        // ЛЮБАЯ заявка со статусом CONFIRMED НЕ МОЖЕТ БЫТЬ ОТМЕНЕНА
+        // CONFIRMED заявки нельзя отменить
         if (request.getStatus() == RequestStatus.CONFIRMED) {
-            log.warn("ATTEMPT TO CANCEL CONFIRMED REQUEST {} - THROWING 409", requestId);
+            log.warn("Cannot cancel confirmed request {}", requestId);
             throw new ConflictException("Cannot cancel already confirmed request");
         }
         
         // PENDING заявки можно отменить
-        if (request.getStatus() == RequestStatus.PENDING) {
-            log.info("Canceling pending request {}", requestId);
-            request.setStatus(RequestStatus.CANCELED);
-            ParticipationRequest canceled = requestRepository.save(request);
-            log.info("Request canceled successfully, new status: {}", canceled.getStatus());
-            return mapToDto(canceled);
-        }
+        request.setStatus(RequestStatus.CANCELED);
+        ParticipationRequest canceled = requestRepository.save(request);
+        log.info("Request canceled, new status: {}", canceled.getStatus());
+
+        return mapToDto(canceled);
+    }
+
+    // Добавляем метод для отмены заявки по eventId (для совместимости с тестами)
+    public ParticipationRequestDto cancelRequestByEventId(Long userId, Long eventId) {
+        log.info("Cancel request by eventId: userId={}, eventId={}", userId, eventId);
         
-        // REJECTED и CANCELED тоже возвращаем 409
-        log.warn("Cannot cancel request with status: {}", request.getStatus());
-        throw new ConflictException("Cannot cancel request with status: " + request.getStatus());
+        ParticipationRequest request = requestRepository.findByRequesterIdAndEventId(userId, eventId)
+                .orElseThrow(() -> new NotFoundException("Request not found for event " + eventId));
+        
+        return cancelRequest(userId, request.getId());
     }
 
     @Override
