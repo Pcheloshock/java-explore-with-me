@@ -47,22 +47,18 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Event not found"));
 
-        // Проверка: нельзя добавить повторный запрос
         if (requestRepository.findByRequesterIdAndEventId(userId, eventId).isPresent()) {
             throw new ConflictException("Request already exists");
         }
 
-        // Проверка: инициатор события не может добавить запрос на участие в своём событии
         if (event.getInitiator().getId().equals(userId)) {
             throw new ConflictException("Initiator cannot request participation in own event");
         }
 
-        // Проверка: нельзя участвовать в неопубликованном событии
         if (event.getState() != EventState.PUBLISHED) {
             throw new ConflictException("Cannot participate in unpublished event");
         }
 
-        // Проверка лимита участников
         long confirmedRequests = requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED);
         if (event.getParticipantLimit() > 0 && confirmedRequests >= event.getParticipantLimit()) {
             throw new ConflictException("Participant limit has been reached");
@@ -95,7 +91,7 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
             throw new NotFoundException("Request not found for this user");
         }
 
-        // Проверка: нельзя отменить уже принятую заявку
+        // Возвращаем 409 Conflict при попытке отменить уже принятую заявку
         if (request.getStatus() == RequestStatus.CONFIRMED) {
             throw new ConflictException("Cannot cancel already confirmed request");
         }

@@ -7,11 +7,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.main.dto.CategoryDto;
 import ru.practicum.main.dto.NewCategoryDto;
+import ru.practicum.main.exception.BadRequestException;
 import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.model.Category;
 import ru.practicum.main.repository.CategoryRepository;
-import ru.practicum.main.repository.EventRepository;  // Убедитесь, что этот импорт есть
+import ru.practicum.main.repository.EventRepository;
 
 @Slf4j
 @Service
@@ -24,6 +25,9 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
 
     @Override
     public CategoryDto addCategory(NewCategoryDto newCategoryDto) {
+        // Валидация длины имени
+        validateCategoryName(newCategoryDto.getName());
+        
         try {
             Category category = Category.builder()
                     .name(newCategoryDto.getName())
@@ -42,6 +46,9 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
     public CategoryDto updateCategory(Long catId, CategoryDto categoryDto) {
         Category category = categoryRepository.findById(catId)
                 .orElseThrow(() -> new NotFoundException("Category with id " + catId + " not found"));
+
+        // Валидация длины имени
+        validateCategoryName(categoryDto.getName());
 
         try {
             category.setName(categoryDto.getName());
@@ -66,5 +73,17 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
 
         categoryRepository.delete(category);
         log.info("Deleted category: {}", category.getName());
+    }
+
+    private void validateCategoryName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            throw new BadRequestException("Name cannot be blank");
+        }
+        if (name.length() > 50) {
+            throw new BadRequestException("Name must be no more than 50 characters");
+        }
+        if (name.length() < 1) {
+            throw new BadRequestException("Name must be at least 1 character");
+        }
     }
 }
