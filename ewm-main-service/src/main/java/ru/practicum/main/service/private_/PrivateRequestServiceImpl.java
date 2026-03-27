@@ -47,12 +47,6 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Event not found"));
 
-        log.info("=== ADD REQUEST DEBUG ===");
-        log.info("eventId: {}", eventId);
-        log.info("requestModeration: {}", event.getRequestModeration());
-        log.info("participantLimit: {}", event.getParticipantLimit());
-        log.info("event state: {}", event.getState());
-
         if (requestRepository.findByRequesterIdAndEventId(userId, eventId).isPresent()) {
             throw new ConflictException("Request already exists");
         }
@@ -75,8 +69,6 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
             status = RequestStatus.CONFIRMED;
         }
 
-        log.info("Calculated status: {}", status);
-
         ParticipationRequest request = ParticipationRequest.builder()
                 .created(LocalDateTime.now())
                 .event(event)
@@ -85,8 +77,7 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
                 .build();
 
         ParticipationRequest saved = requestRepository.save(request);
-        log.info("Saved request with status: {}", saved.getStatus());
-        log.info("=== END ADD REQUEST ===");
+        log.info("User {} requested participation in event {}, status: {}", userId, eventId, saved.getStatus());
 
         return mapToDto(saved);
     }
@@ -100,28 +91,23 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
             throw new NotFoundException("Request not found for this user");
         }
 
-        log.info("=== CANCEL REQUEST DEBUG ===");
-        log.info("requestId: {}", requestId);
-        log.info("Current status: {}", request.getStatus());
-        log.info("Current status enum: {}", request.getStatus().name());
-        log.info("Is CONFIRMED? {}", request.getStatus() == RequestStatus.CONFIRMED);
+        log.info("Cancel request {} with status: {}", requestId, request.getStatus());
         
-        // Возвращаем 409 Conflict при попытке отменить уже принятую заявку
+        // ЛЮБАЯ заявка со статусом CONFIRMED НЕ МОЖЕТ БЫТЬ ОТМЕНЕНА
         if (request.getStatus() == RequestStatus.CONFIRMED) {
-            log.warn("ATTEMPT TO CANCEL CONFIRMED REQUEST {} - RETURNING 409", requestId);
+            log.warn("Cannot cancel confirmed request {}", requestId);
             throw new ConflictException("Cannot cancel already confirmed request");
         }
         
-        // Если заявка в статусе PENDING, её можно отменить
+        // PENDING заявки можно отменить
         if (request.getStatus() == RequestStatus.PENDING) {
-            log.info("Canceling pending request {}", requestId);
             request.setStatus(RequestStatus.CANCELED);
             ParticipationRequest canceled = requestRepository.save(request);
-            log.info("Pending request canceled successfully");
+            log.info("User {} canceled request {}", userId, requestId);
             return mapToDto(canceled);
         }
         
-        // Все остальные статусы (REJECTED, CANCELED) тоже должны возвращать 409
+        // REJECTED и CANCELED тоже возвращаем 409
         log.warn("Cannot cancel request with status: {}", request.getStatus());
         throw new ConflictException("Cannot cancel request with status: " + request.getStatus());
     }
