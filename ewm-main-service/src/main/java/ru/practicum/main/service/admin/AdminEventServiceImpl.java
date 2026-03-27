@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.main.dto.*;
 import ru.practicum.main.exception.BadRequestException;
+import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.model.*;
 import ru.practicum.main.repository.*;
@@ -58,10 +59,8 @@ public class AdminEventServiceImpl implements AdminEventService {
             event.setDescription(updateRequest.getDescription());
         }
 
-        // Исправлено: используем getEventDateAsLocalDateTime()
         if (updateRequest.getEventDate() != null) {
             LocalDateTime eventDate = updateRequest.getEventDateAsLocalDateTime();
-            // Разрешаем дату, которая не в прошлом
             if (eventDate.isBefore(LocalDateTime.now())) {
                 throw new BadRequestException("Event date cannot be in the past");
             }
@@ -94,13 +93,13 @@ public class AdminEventServiceImpl implements AdminEventService {
         if (updateRequest.getStateAction() != null) {
             if (updateRequest.getStateAction() == AdminStateAction.PUBLISH_EVENT) {
                 if (event.getState() != EventState.PENDING) {
-                    throw new BadRequestException("Only pending events can be published");
+                    throw new ConflictException("Cannot publish the event because it's not in the right state: " + event.getState());
                 }
                 event.setState(EventState.PUBLISHED);
                 event.setPublishedOn(LocalDateTime.now());
             } else if (updateRequest.getStateAction() == AdminStateAction.REJECT_EVENT) {
                 if (event.getState() == EventState.PUBLISHED) {
-                    throw new BadRequestException("Published events cannot be rejected");
+                    throw new ConflictException("Cannot reject published event");
                 }
                 event.setState(EventState.CANCELED);
             }
