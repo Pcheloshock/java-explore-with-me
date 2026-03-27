@@ -77,7 +77,7 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
                 .build();
 
         ParticipationRequest saved = requestRepository.save(request);
-        log.info("User {} requested participation in event {}", userId, eventId);
+        log.info("User {} requested participation in event {}, status: {}", userId, eventId, saved.getStatus());
 
         return mapToDto(saved);
     }
@@ -91,9 +91,17 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
             throw new NotFoundException("Request not found for this user");
         }
 
+        log.info("Cancel request: id={}, current status={}", requestId, request.getStatus());
+        
         // Возвращаем 409 Conflict при попытке отменить уже принятую заявку
         if (request.getStatus() == RequestStatus.CONFIRMED) {
+            log.warn("Attempt to cancel already confirmed request {}", requestId);
             throw new ConflictException("Cannot cancel already confirmed request");
+        }
+        
+        // Если заявка уже отменена, тоже возвращаем 409?
+        if (request.getStatus() == RequestStatus.CANCELED) {
+            throw new ConflictException("Request already canceled");
         }
 
         request.setStatus(RequestStatus.CANCELED);
