@@ -37,6 +37,14 @@ public class StatsService {
     }
 
     public Map<Long, Long> getViewsForEvents(List<Long> eventIds, LocalDateTime start, LocalDateTime end) {
+        return getViewsForEventsWithUnique(eventIds, start, end, false);
+    }
+
+    public Map<Long, Long> getViewsForEventsUnique(List<Long> eventIds, LocalDateTime start, LocalDateTime end) {
+        return getViewsForEventsWithUnique(eventIds, start, end, true);
+    }
+
+    private Map<Long, Long> getViewsForEventsWithUnique(List<Long> eventIds, LocalDateTime start, LocalDateTime end, boolean unique) {
         if (eventIds == null || eventIds.isEmpty()) {
             return Map.of();
         }
@@ -46,7 +54,7 @@ public class StatsService {
                 .collect(Collectors.toList());
 
         try {
-            List<ViewStatsDto> stats = statsClient.getStats(start, end, uris, false);
+            List<ViewStatsDto> stats = statsClient.getStats(start, end, uris, unique);
             return stats.stream()
                     .collect(Collectors.toMap(
                             stat -> {
@@ -66,6 +74,10 @@ public class StatsService {
     }
 
     public Long getViewsForEvent(Long eventId, LocalDateTime start, LocalDateTime end) {
-        return getViewsForEvents(List.of(eventId), start, end).getOrDefault(eventId, 0L);
+        return getViewsForEventsWithUnique(List.of(eventId), start, end, false).getOrDefault(eventId, 0L);
+    }
+
+    public Long getViewsForEventUnique(Long eventId, LocalDateTime start, LocalDateTime end) {
+        return getViewsForEventsWithUnique(List.of(eventId), start, end, true).getOrDefault(eventId, 0L);
     }
 }

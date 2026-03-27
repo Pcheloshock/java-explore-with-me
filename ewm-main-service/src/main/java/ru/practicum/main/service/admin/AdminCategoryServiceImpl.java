@@ -25,21 +25,21 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
 
     @Override
     public CategoryDto addCategory(NewCategoryDto newCategoryDto) {
-        // Валидация длины имени
         validateCategoryName(newCategoryDto.getName());
         
-        try {
-            Category category = Category.builder()
-                    .name(newCategoryDto.getName())
-                    .build();
-
-            Category saved = categoryRepository.save(category);
-            log.info("Added category: {}", saved.getName());
-
-            return new CategoryDto(saved.getId(), saved.getName());
-        } catch (DataIntegrityViolationException e) {
+        // Проверка на дубликат перед сохранением
+        if (categoryRepository.existsByName(newCategoryDto.getName())) {
             throw new ConflictException("Category with name " + newCategoryDto.getName() + " already exists");
         }
+        
+        Category category = Category.builder()
+                .name(newCategoryDto.getName())
+                .build();
+
+        Category saved = categoryRepository.save(category);
+        log.info("Added category: {}", saved.getName());
+
+        return new CategoryDto(saved.getId(), saved.getName());
     }
 
     @Override
@@ -47,18 +47,19 @@ public class AdminCategoryServiceImpl implements AdminCategoryService {
         Category category = categoryRepository.findById(catId)
                 .orElseThrow(() -> new NotFoundException("Category with id " + catId + " not found"));
 
-        // Валидация длины имени
         validateCategoryName(categoryDto.getName());
-
-        try {
-            category.setName(categoryDto.getName());
-            Category updated = categoryRepository.save(category);
-            log.info("Updated category: {}", updated.getName());
-
-            return new CategoryDto(updated.getId(), updated.getName());
-        } catch (DataIntegrityViolationException e) {
+        
+        // Проверка на дубликат при обновлении
+        if (!category.getName().equals(categoryDto.getName()) && 
+            categoryRepository.existsByName(categoryDto.getName())) {
             throw new ConflictException("Category with name " + categoryDto.getName() + " already exists");
         }
+
+        category.setName(categoryDto.getName());
+        Category updated = categoryRepository.save(category);
+        log.info("Updated category: {}", updated.getName());
+
+        return new CategoryDto(updated.getId(), updated.getName());
     }
 
     @Override
