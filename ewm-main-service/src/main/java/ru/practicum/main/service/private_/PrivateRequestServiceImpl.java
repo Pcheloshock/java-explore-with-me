@@ -47,6 +47,9 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Event not found"));
 
+        log.info("ADD REQUEST: eventId={}, requestModeration={}, participantLimit={}", 
+            eventId, event.getRequestModeration(), event.getParticipantLimit());
+
         if (requestRepository.findByRequesterIdAndEventId(userId, eventId).isPresent()) {
             throw new ConflictException("Request already exists");
         }
@@ -69,6 +72,8 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
             status = RequestStatus.CONFIRMED;
         }
 
+        log.info("ADD REQUEST: calculated status={}", status);
+
         ParticipationRequest request = ParticipationRequest.builder()
                 .created(LocalDateTime.now())
                 .event(event)
@@ -77,7 +82,7 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
                 .build();
 
         ParticipationRequest saved = requestRepository.save(request);
-        log.info("User {} requested participation in event {}, status: {}", userId, eventId, saved.getStatus());
+        log.info("User {} requested participation in event {}, saved status: {}", userId, eventId, saved.getStatus());
 
         return mapToDto(saved);
     }
@@ -91,17 +96,13 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
             throw new NotFoundException("Request not found for this user");
         }
 
-        log.info("Cancel request: id={}, current status={}", requestId, request.getStatus());
+        log.info("CANCEL REQUEST: id={}, current status={}, status enum={}", 
+            requestId, request.getStatus(), request.getStatus().name());
         
         // Возвращаем 409 Conflict при попытке отменить уже принятую заявку
         if (request.getStatus() == RequestStatus.CONFIRMED) {
-            log.warn("Attempt to cancel already confirmed request {}", requestId);
+            log.warn("Attempt to cancel confirmed request {} by user {}", requestId, userId);
             throw new ConflictException("Cannot cancel already confirmed request");
-        }
-        
-        // Если заявка уже отменена, тоже возвращаем 409?
-        if (request.getStatus() == RequestStatus.CANCELED) {
-            throw new ConflictException("Request already canceled");
         }
 
         request.setStatus(RequestStatus.CANCELED);
