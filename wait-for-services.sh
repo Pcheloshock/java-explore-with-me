@@ -1,28 +1,38 @@
 #!/bin/bash
 
-echo "Waiting for services to start..."
+echo "Waiting for services to be ready..."
 
-# Проверка stats service
-echo "Checking stats service..."
+# Проверяем stats service
+echo "Checking stats service (port 9091)..."
 for i in {1..30}; do
-  if curl -s http://localhost:9091/actuator/health | grep -q "UP"; then
-    echo "Stats service is ready!"
+  if curl -s -f http://localhost:9091/actuator/health 2>/dev/null | grep -q "UP"; then
+    echo "✓ Stats service is ready"
     break
   fi
-  echo "Attempt $i: Stats service not ready yet..."
-  sleep 5
-done
-
-# Проверка main service
-echo "Checking main service..."
-for i in {1..30}; do
-  if curl -s http://localhost:8081/actuator/health | grep -q "UP"; then
-    echo "Main service is ready!"
-    exit 0
+  if [ $i -eq 30 ]; then
+    echo "✗ Stats service failed to start"
+    docker-compose logs ewm-stats-service
+    exit 1
   fi
-  echo "Attempt $i: Main service not ready yet..."
+  echo "Waiting for stats service... ($i/30)"
   sleep 5
 done
 
-echo "Services failed to start"
-exit 1
+# Проверяем main service
+echo "Checking main service (port 8081)..."
+for i in {1..60}; do
+  if curl -s -f http://localhost:8081/actuator/health 2>/dev/null | grep -q "UP"; then
+    echo "✓ Main service is ready"
+    break
+  fi
+  if [ $i -eq 60 ]; then
+    echo "✗ Main service failed to start"
+    docker-compose logs ewm-main-service
+    exit 1
+  fi
+  echo "Waiting for main service... ($i/60)"
+  sleep 5
+done
+
+echo "✅ All services are ready!"
+exit 0
