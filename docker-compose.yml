@@ -39,7 +39,7 @@ services:
       dockerfile: Dockerfile
     container_name: ewm-stats-service
     ports:
-      - "9091:9090"
+      - "9090:9090"  # Меняем с 9091 на 9090
     depends_on:
       stats-db:
         condition: service_healthy
@@ -63,7 +63,7 @@ services:
       dockerfile: Dockerfile
     container_name: ewm-main-service
     ports:
-      - "8081:8080"
+      - "8080:8080"  # Меняем с 8081 на 8080
     depends_on:
       ewm-db:
         condition: service_healthy
@@ -76,8 +76,12 @@ services:
       STATS_SERVICE_URL: http://ewm-stats-service:9090
     networks:
       - ewm-network
-    # Убираем healthcheck для main service, чтобы не мешал CI
-    # healthcheck будет выполняться через наш скрипт
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 90s
 
 networks:
   ewm-network:
