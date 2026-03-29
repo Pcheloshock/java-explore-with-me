@@ -10,6 +10,7 @@ import ru.practicum.main.dto.*;
 import ru.practicum.main.exception.BadRequestException;
 import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
+import ru.practicum.main.mapper.EventMapper;
 import ru.practicum.main.model.*;
 import ru.practicum.main.repository.*;
 
@@ -25,18 +26,23 @@ public class AdminEventServiceImpl implements AdminEventService {
 
     private final EventRepository eventRepository;
     private final CategoryRepository categoryRepository;
-    private final ParticipationRequestRepository requestRepository;
+    private final EventMapper eventMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public List<EventFullDto> getEvents(List<Long> users, List<EventState> states,
-                                        List<Long> categories, LocalDateTime rangeStart,
-                                        LocalDateTime rangeEnd, int from, int size) {
-        Pageable pageable = PageRequest.of(from / size, size);
+    public List<EventFullDto> getEvents(AdminEventFilterParams params) {
+        int page = params.getSize() > 0 ? params.getFrom() / params.getSize() : 0;
+        Pageable pageable = PageRequest.of(page, params.getSize());
 
-        return eventRepository.findAllByAdmin(users, states, categories, rangeStart, rangeEnd, pageable)
-                .stream()
-                .map(this::mapToFullDto)
+        return eventRepository.findAllByAdmin(
+                params.getUsers(),
+                params.getStates(),
+                params.getCategories(),
+                params.getRangeStart(),
+                params.getRangeEnd(),
+                pageable
+        ).stream()
+                .map(eventMapper::toFullDto)
                 .collect(Collectors.toList());
     }
 
@@ -108,29 +114,6 @@ public class AdminEventServiceImpl implements AdminEventService {
         Event updated = eventRepository.save(event);
         log.info("Admin updated event: {}", updated.getTitle());
 
-        return mapToFullDto(updated);
-    }
-
-    private EventFullDto mapToFullDto(Event event) {
-        long confirmedRequests = requestRepository.countByEventIdAndStatus(event.getId(), RequestStatus.CONFIRMED);
-
-        return new EventFullDto(
-                event.getId(),
-                event.getAnnotation(),
-                new CategoryDto(event.getCategory().getId(), event.getCategory().getName()),
-                confirmedRequests,
-                event.getCreatedOn(),
-                event.getDescription(),
-                event.getEventDate(),
-                new UserShortDto(event.getInitiator().getId(), event.getInitiator().getName()),
-                new LocationDto(event.getLocation().getLat(), event.getLocation().getLon()),
-                event.getPaid(),
-                event.getParticipantLimit(),
-                event.getPublishedOn(),
-                event.getRequestModeration(),
-                event.getState(),
-                event.getTitle(),
-                0L
-        );
+        return eventMapper.toFullDto(updated);
     }
 }

@@ -5,6 +5,8 @@ server:
 spring:
   application:
     name: ewm-main-service
+  main:
+    allow-bean-definition-overriding: true
   datasource:
     url: jdbc:postgresql://ewm-db:5432/ewm
     username: admin
@@ -26,7 +28,7 @@ spring:
       mode: always
 
 stats-service:
-  url: http://ewm-stats-service:9090
+  url: ${STATS_SERVICE_URL:http://ewm-stats-service:9090}
 
 logging:
   level:

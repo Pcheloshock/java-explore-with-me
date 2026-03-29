@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.dto.CategoryDto;
 import ru.practicum.main.dto.NewCategoryDto;
-import ru.practicum.main.service.admin.AdminCategoryService;
+import ru.practicum.main.service.CategoryService;
 
 import javax.validation.Valid;
 
@@ -16,7 +16,7 @@ import javax.validation.Valid;
 @RequiredArgsConstructor
 public class AdminCategoryController {
 
-    private final AdminCategoryService categoryService;
+    private final CategoryService categoryService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

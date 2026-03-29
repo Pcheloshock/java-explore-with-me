@@ -6,19 +6,25 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.main.dto.*;
+import ru.practicum.dto.HitDto;
+import ru.practicum.dto.ViewStatsDto;
+import ru.practicum.main.dto.EventFullDto;
+import ru.practicum.main.dto.EventShortDto;
 import ru.practicum.main.exception.BadRequestException;
 import ru.practicum.main.exception.NotFoundException;
+import ru.practicum.main.mapper.PublicEventMapper;
 import ru.practicum.main.model.Event;
 import ru.practicum.main.model.EventState;
+import ru.practicum.main.model.RequestStatus;
 import ru.practicum.main.repository.EventRepository;
 import ru.practicum.main.repository.ParticipationRequestRepository;
-import ru.practicum.main.model.RequestStatus;
-import ru.practicum.main.service.stats.StatsService;
+import ru.practicum.stats.client.StatsClient;
 
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -29,7 +35,9 @@ public class PublicEventServiceImpl implements PublicEventService {
 
     private final EventRepository eventRepository;
     private final ParticipationRequestRepository requestRepository;
-    private final StatsService statsService;
+    private final StatsClient statsClient;
+    private final PublicEventMapper eventMapper;
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public List<EventShortDto> getEvents(String text, List<Long> categories, Boolean paid,
@@ -40,8 +48,15 @@ public class PublicEventServiceImpl implements PublicEventService {
         log.info("Getting events with text: {}, categories: {}, paid: {}, rangeStart: {}, rangeEnd: {}",
                 text, categories, paid, rangeStart, rangeEnd);
 
+        // Сохраняем хит
         try {
-            statsService.saveHit(request);
+            HitDto hitDto = new HitDto(
+                    "ewm-main-service",
+                    request.getRequestURI(),
+                    request.getRemoteAddr(),
+                    LocalDateTime.now().format(FORMATTER)
+            );
+            statsClient.addHit(hitDto);
         } catch (Exception e) {
             log.error("Failed to save hit: {}", e.getMessage());
         }
@@ -60,21 +75,23 @@ public class PublicEventServiceImpl implements PublicEventService {
                 EventState.PUBLISHED, text, categories, paid, rangeStart, rangeEnd, pageable);
 
         if (onlyAvailable) {
+            List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
+            Map<Long, Long> confirmedRequestsMap = requestRepository.countConfirmedRequestsByEventIds(eventIds);
+            
             events = events.stream()
                     .filter(event -> {
-                        long confirmedRequests = requestRepository.countByEventIdAndStatus(event.getId(), RequestStatus.CONFIRMED);
+                        long confirmedRequests = confirmedRequestsMap.getOrDefault(event.getId(), 0L);
                         return event.getParticipantLimit() == 0 || confirmedRequests < event.getParticipantLimit();
                     })
                     .collect(Collectors.toList());
         }
 
         List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
-        // Используем unique=true для получения уникальных просмотров
-        Map<Long, Long> viewsMap = statsService.getViewsForEventsUnique(eventIds, rangeStart, rangeEnd);
+        
+        // Получаем уникальные просмотры
+        Map<Long, Long> viewsMap = getViewsForEventsUnique(eventIds, rangeStart, rangeEnd);
 
-        return events.stream()
-                .map(event -> mapToShortDto(event, viewsMap.getOrDefault(event.getId(), 0L)))
-                .collect(Collectors.toList());
+        return eventMapper.toShortDtoList(events, viewsMap);
     }
 
     @Override
@@ -86,54 +103,55 @@ public class PublicEventServiceImpl implements PublicEventService {
             throw new NotFoundException("Event not found");
         }
 
+        // Сохраняем хит
         try {
-            statsService.saveHit(request);
+            HitDto hitDto = new HitDto(
+                    "ewm-main-service",
+                    request.getRequestURI(),
+                    request.getRemoteAddr(),
+                    LocalDateTime.now().format(FORMATTER)
+            );
+            statsClient.addHit(hitDto);
         } catch (Exception e) {
             log.error("Failed to save hit: {}", e.getMessage());
         }
 
-        // Используем unique=true для получения уникальных просмотров
-        Long views = statsService.getViewsForEventUnique(id, event.getCreatedOn(), LocalDateTime.now());
+        // Получаем уникальные просмотры
+        Long views = getViewsForEventUnique(id, event.getCreatedOn(), LocalDateTime.now());
 
-        return mapToFullDto(event, views);
+        return eventMapper.toFullDto(event, views);
     }
 
-    private EventShortDto mapToShortDto(Event event, Long views) {
-        long confirmedRequests = requestRepository.countByEventIdAndStatus(event.getId(), RequestStatus.CONFIRMED);
+    private Map<Long, Long> getViewsForEventsUnique(List<Long> eventIds, LocalDateTime start, LocalDateTime end) {
+        if (eventIds == null || eventIds.isEmpty()) {
+            return Map.of();
+        }
 
-        return new EventShortDto(
-                event.getId(),
-                event.getAnnotation(),
-                new CategoryDto(event.getCategory().getId(), event.getCategory().getName()),
-                confirmedRequests,
-                event.getEventDate(),
-                new UserShortDto(event.getInitiator().getId(), event.getInitiator().getName()),
-                event.getPaid(),
-                event.getTitle(),
-                views
-        );
+        List<String> uris = eventIds.stream()
+                .map(id -> "/events/" + id)
+                .collect(Collectors.toList());
+
+        try {
+            List<ViewStatsDto> stats = statsClient.getStats(start, end, uris, true);
+            return stats.stream()
+                    .collect(Collectors.toMap(
+                            stat -> {
+                                String uri = stat.getUri();
+                                if (uri.startsWith("/events/")) {
+                                    return Long.parseLong(uri.substring(8));
+                                }
+                                return 0L;
+                            },
+                            ViewStatsDto::getHits,
+                            (a, b) -> a
+                    ));
+        } catch (Exception e) {
+            log.error("Failed to get views: {}", e.getMessage());
+            return Map.of();
+        }
     }
 
-    private EventFullDto mapToFullDto(Event event, Long views) {
-        long confirmedRequests = requestRepository.countByEventIdAndStatus(event.getId(), RequestStatus.CONFIRMED);
-
-        return new EventFullDto(
-                event.getId(),
-                event.getAnnotation(),
-                new CategoryDto(event.getCategory().getId(), event.getCategory().getName()),
-                confirmedRequests,
-                event.getCreatedOn(),
-                event.getDescription(),
-                event.getEventDate(),
-                new UserShortDto(event.getInitiator().getId(), event.getInitiator().getName()),
-                new LocationDto(event.getLocation().getLat(), event.getLocation().getLon()),
-                event.getPaid(),
-                event.getParticipantLimit(),
-                event.getPublishedOn(),
-                event.getRequestModeration(),
-                event.getState(),
-                event.getTitle(),
-                views
-        );
+    private Long getViewsForEventUnique(Long eventId, LocalDateTime start, LocalDateTime end) {
+        return getViewsForEventsUnique(List.of(eventId), start, end).getOrDefault(eventId, 0L);
     }
 }

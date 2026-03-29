@@ -2,7 +2,6 @@ package ru.practicum.main.service.admin;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,19 +26,20 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     public UserDto addUser(NewUserRequest newUserRequest) {
-        try {
-            User user = User.builder()
-                    .name(newUserRequest.getName())
-                    .email(newUserRequest.getEmail())
-                    .build();
-
-            User saved = userRepository.save(user);
-            log.info("Added user: {}", saved.getName());
-
-            return new UserDto(saved.getId(), saved.getName(), saved.getEmail());
-        } catch (DataIntegrityViolationException e) {
+        // Явная проверка на существование пользователя с таким email
+        if (userRepository.existsByEmail(newUserRequest.getEmail())) {
             throw new ConflictException("User with email " + newUserRequest.getEmail() + " already exists");
         }
+        
+        User user = User.builder()
+                .name(newUserRequest.getName())
+                .email(newUserRequest.getEmail())
+                .build();
+
+        User saved = userRepository.save(user);
+        log.info("Added user: {}", saved.getName());
+
+        return new UserDto(saved.getId(), saved.getName(), saved.getEmail());
     }
 
     @Override

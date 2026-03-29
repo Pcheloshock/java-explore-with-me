@@ -10,12 +10,12 @@ import ru.practicum.main.dto.*;
 import ru.practicum.main.exception.BadRequestException;
 import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
+import ru.practicum.main.mapper.PrivateEventMapper;
 import ru.practicum.main.model.*;
 import ru.practicum.main.repository.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -26,7 +26,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
-    private final ParticipationRequestRepository requestRepository;
+    private final PrivateEventMapper eventMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -35,9 +35,9 @@ public class PrivateEventServiceImpl implements PrivateEventService {
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
         Pageable pageable = PageRequest.of(from / size, size);
-        return eventRepository.findByInitiatorId(userId, pageable).stream()
-                .map(this::mapToShortDto)
-                .collect(Collectors.toList());
+        List<Event> events = eventRepository.findByInitiatorId(userId, pageable).getContent();
+        
+        return eventMapper.toShortDtoList(events);
     }
 
     @Override
@@ -78,7 +78,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         Event saved = eventRepository.save(event);
         log.info("Created event: {} by user: {}", saved.getTitle(), userId);
 
-        return mapToFullDto(saved);
+        return eventMapper.toFullDto(saved);
     }
 
     @Override
@@ -91,7 +91,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
             throw new NotFoundException("Event not found for this user");
         }
 
-        return mapToFullDto(event);
+        return eventMapper.toFullDto(event);
     }
 
     @Override
@@ -103,7 +103,6 @@ public class PrivateEventServiceImpl implements PrivateEventService {
             throw new NotFoundException("Event not found for this user");
         }
 
-        // Проверка: нельзя изменять опубликованное событие
         if (event.getState() == EventState.PUBLISHED) {
             throw new ConflictException("Only pending or canceled events can be changed");
         }
@@ -164,45 +163,6 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         Event updated = eventRepository.save(event);
         log.info("Updated event: {} by user: {}", updated.getTitle(), userId);
 
-        return mapToFullDto(updated);
-    }
-
-    private EventShortDto mapToShortDto(Event event) {
-        long confirmedRequests = requestRepository.countByEventIdAndStatus(event.getId(), RequestStatus.CONFIRMED);
-
-        return new EventShortDto(
-                event.getId(),
-                event.getAnnotation(),
-                new CategoryDto(event.getCategory().getId(), event.getCategory().getName()),
-                confirmedRequests,
-                event.getEventDate(),
-                new UserShortDto(event.getInitiator().getId(), event.getInitiator().getName()),
-                event.getPaid(),
-                event.getTitle(),
-                0L
-        );
-    }
-
-    private EventFullDto mapToFullDto(Event event) {
-        long confirmedRequests = requestRepository.countByEventIdAndStatus(event.getId(), RequestStatus.CONFIRMED);
-
-        return new EventFullDto(
-                event.getId(),
-                event.getAnnotation(),
-                new CategoryDto(event.getCategory().getId(), event.getCategory().getName()),
-                confirmedRequests,
-                event.getCreatedOn(),
-                event.getDescription(),
-                event.getEventDate(),
-                new UserShortDto(event.getInitiator().getId(), event.getInitiator().getName()),
-                new LocationDto(event.getLocation().getLat(), event.getLocation().getLon()),
-                event.getPaid(),
-                event.getParticipantLimit(),
-                event.getPublishedOn(),
-                event.getRequestModeration(),
-                event.getState(),
-                event.getTitle(),
-                0L
-        );
+        return eventMapper.toFullDto(updated);
     }
 }
