@@ -3,10 +3,13 @@ package ru.practicum.main.exception;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import javax.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
@@ -33,6 +36,45 @@ public class ErrorHandler {
         response.put("status", HttpStatus.BAD_REQUEST.value());
         response.put("error", "Validation failed");
         response.put("message", errors);
+        response.put("timestamp", LocalDateTime.now());
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, Object>> handleMissingParams(MissingServletRequestParameterException ex) {
+        log.error("Missing parameter: {}", ex.getParameterName());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Bad Request");
+        response.put("message", "Required request parameter '" + ex.getParameterName() + "' is not present");
+        response.put("timestamp", LocalDateTime.now());
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        log.error("Type mismatch: {}", ex.getMessage());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Bad Request");
+        response.put("message", "Failed to convert value '" + ex.getValue() + "' to type " + ex.getRequiredType().getSimpleName());
+        response.put("timestamp", LocalDateTime.now());
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        log.error("Message not readable: {}", ex.getMessage());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Bad Request");
+        response.put("message", "Malformed JSON request");
         response.put("timestamp", LocalDateTime.now());
 
         return ResponseEntity.badRequest().body(response);
@@ -84,19 +126,6 @@ public class ErrorHandler {
         Map<String, Object> response = new HashMap<>();
         response.put("status", HttpStatus.BAD_REQUEST.value());
         response.put("error", "Bad request");
-        response.put("message", ex.getMessage());
-        response.put("timestamp", LocalDateTime.now());
-
-        return ResponseEntity.badRequest().body(response);
-    }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
-        log.error("Illegal argument: {}", ex.getMessage());
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", HttpStatus.BAD_REQUEST.value());
-        response.put("error", "Bad Request");
         response.put("message", ex.getMessage());
         response.put("timestamp", LocalDateTime.now());
 

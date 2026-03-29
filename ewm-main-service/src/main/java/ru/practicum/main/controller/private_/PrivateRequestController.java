@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.dto.EventRequestStatusUpdateRequest;
 import ru.practicum.main.dto.EventRequestStatusUpdateResult;
 import ru.practicum.main.dto.ParticipationRequestDto;
+import ru.practicum.main.exception.BadRequestException;
 import ru.practicum.main.service.private_.PrivateRequestService;
 
 import javax.validation.Valid;
@@ -29,8 +30,14 @@ public class PrivateRequestController {
     @PostMapping("/requests")
     @ResponseStatus(HttpStatus.CREATED)
     public ParticipationRequestDto addRequest(@PathVariable Long userId,
-                                              @RequestParam Long eventId) {
+                                              @RequestParam(required = false) Long eventId) {
         log.info("POST /users/{}/requests with eventId={}", userId, eventId);
+        
+        // Ручная проверка обязательного параметра
+        if (eventId == null) {
+            throw new BadRequestException("Required request parameter 'eventId' is not present");
+        }
+        
         return requestService.addRequest(userId, eventId);
     }
 

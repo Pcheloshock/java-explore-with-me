@@ -1,6 +1,9 @@
 server:
   port: 8080
   shutdown: graceful
+  error:
+    include-message: always
+    include-binding-errors: always
 
 spring:
   application:
@@ -26,6 +29,8 @@ spring:
   sql:
     init:
       mode: always
+  mvc:
+    throw-exception-if-no-handler-found: true
 
 stats-service:
   url: ${STATS_SERVICE_URL:http://ewm-stats-service:9090}
