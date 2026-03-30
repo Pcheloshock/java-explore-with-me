@@ -34,7 +34,12 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
-        Pageable pageable = PageRequest.of(from / size, size);
+        // Защита от деления на ноль
+        int safeFrom = Math.max(from, 0);
+        int safeSize = size > 0 ? Math.min(size, 100) : 10;
+        int page = safeFrom / safeSize;
+        
+        Pageable pageable = PageRequest.of(page, safeSize);
         List<Event> events = eventRepository.findByInitiatorId(userId, pageable).getContent();
         
         return eventMapper.toShortDtoList(events);

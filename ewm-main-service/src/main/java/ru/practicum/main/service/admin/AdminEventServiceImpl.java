@@ -31,8 +31,12 @@ public class AdminEventServiceImpl implements AdminEventService {
     @Override
     @Transactional(readOnly = true)
     public List<EventFullDto> getEvents(AdminEventFilterParams params) {
-        int page = params.getSize() > 0 ? params.getFrom() / params.getSize() : 0;
-        Pageable pageable = PageRequest.of(page, params.getSize());
+        // Защита от деления на ноль
+        int from = Math.max(params.getFrom(), 0);
+        int size = params.getSize() > 0 ? Math.min(params.getSize(), 100) : 10;
+        int page = from / size;
+        
+        Pageable pageable = PageRequest.of(page, size);
 
         return eventRepository.findAllByAdmin(
                 params.getUsers(),
