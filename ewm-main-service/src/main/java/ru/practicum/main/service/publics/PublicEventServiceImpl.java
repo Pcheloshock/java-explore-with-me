@@ -69,7 +69,10 @@ public class PublicEventServiceImpl implements PublicEventService {
             throw new BadRequestException("Start date must be before end date");
         }
 
-        Pageable pageable = PageRequest.of(from / size, size);
+        // Защита от отрицательных значений
+        int pageFrom = Math.max(from, 0);
+        int pageSize = size > 0 ? Math.min(size, 100) : 10;
+        Pageable pageable = PageRequest.of(pageFrom / pageSize, pageSize);
 
         List<Event> events = eventRepository.findAllPublished(
                 EventState.PUBLISHED, text, categories, paid, rangeStart, rangeEnd, pageable);
