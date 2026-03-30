@@ -61,23 +61,25 @@ public class PublicEventServiceImpl implements PublicEventService {
             log.error("Failed to save hit: {}", e.getMessage());
         }
 
+        // Нормализация параметров
         if (rangeStart == null && rangeEnd == null) {
             rangeStart = LocalDateTime.now();
         }
-
+        
         if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
             throw new BadRequestException("Start date must be before end date");
         }
 
-        // Защита от отрицательных значений
-        int pageFrom = Math.max(from, 0);
-        int pageSize = size > 0 ? Math.min(size, 100) : 10;
-        Pageable pageable = PageRequest.of(pageFrom / pageSize, pageSize);
+        // Нормализация пагинации
+        int safeFrom = Math.max(from, 0);
+        int safeSize = size <= 0 ? 10 : Math.min(size, 100);
+        
+        Pageable pageable = PageRequest.of(safeFrom / safeSize, safeSize);
 
         List<Event> events = eventRepository.findAllPublished(
                 EventState.PUBLISHED, text, categories, paid, rangeStart, rangeEnd, pageable);
 
-        if (onlyAvailable) {
+        if (onlyAvailable && !events.isEmpty()) {
             List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
             Map<Long, Long> confirmedRequestsMap = requestRepository.countConfirmedRequestsByEventIds(eventIds);
             
@@ -89,9 +91,11 @@ public class PublicEventServiceImpl implements PublicEventService {
                     .collect(Collectors.toList());
         }
 
+        if (events.isEmpty()) {
+            return List.of();
+        }
+
         List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
-        
-        // Получаем уникальные просмотры
         Map<Long, Long> viewsMap = getViewsForEventsUnique(eventIds, rangeStart, rangeEnd);
 
         return eventMapper.toShortDtoList(events, viewsMap);
@@ -106,7 +110,6 @@ public class PublicEventServiceImpl implements PublicEventService {
             throw new NotFoundException("Event not found");
         }
 
-        // Сохраняем хит
         try {
             HitDto hitDto = new HitDto(
                     "ewm-main-service",
@@ -119,7 +122,6 @@ public class PublicEventServiceImpl implements PublicEventService {
             log.error("Failed to save hit: {}", e.getMessage());
         }
 
-        // Получаем уникальные просмотры
         Long views = getViewsForEventUnique(id, event.getCreatedOn(), LocalDateTime.now());
 
         return eventMapper.toFullDto(event, views);
