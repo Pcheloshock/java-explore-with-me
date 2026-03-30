@@ -61,25 +61,41 @@ public class PublicEventServiceImpl implements PublicEventService {
             log.error("Failed to save hit: {}", e.getMessage());
         }
 
-        // Нормализация параметров
+        // Устанавливаем значения по умолчанию
         if (rangeStart == null && rangeEnd == null) {
             rangeStart = LocalDateTime.now();
         }
         
+        // Проверка дат
         if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
             throw new BadRequestException("Start date must be before end date");
         }
 
-        // Нормализация пагинации
+        // Нормализация пагинации - защита от деления на ноль
         int safeFrom = Math.max(from, 0);
-        int safeSize = size <= 0 ? 10 : Math.min(size, 100);
+        int safeSize = size;
         
-        Pageable pageable = PageRequest.of(safeFrom / safeSize, safeSize);
+        // Если size <= 0, устанавливаем значение по умолчанию 10
+        if (safeSize <= 0) {
+            safeSize = 10;
+        }
+        // Ограничиваем максимальный размер
+        if (safeSize > 100) {
+            safeSize = 100;
+        }
+        
+        int page = safeFrom / safeSize;
+        Pageable pageable = PageRequest.of(page, safeSize);
 
         List<Event> events = eventRepository.findAllPublished(
                 EventState.PUBLISHED, text, categories, paid, rangeStart, rangeEnd, pageable);
 
-        if (onlyAvailable && !events.isEmpty()) {
+        // Если нет событий, возвращаем пустой список
+        if (events.isEmpty()) {
+            return List.of();
+        }
+
+        if (onlyAvailable) {
             List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
             Map<Long, Long> confirmedRequestsMap = requestRepository.countConfirmedRequestsByEventIds(eventIds);
             

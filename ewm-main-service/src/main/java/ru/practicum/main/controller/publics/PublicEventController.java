@@ -3,6 +3,7 @@ package ru.practicum.main.controller.publics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.dto.EventFullDto;
 import ru.practicum.main.dto.EventShortDto;
@@ -21,7 +22,7 @@ public class PublicEventController {
     private final PublicEventService eventService;
 
     @GetMapping
-    public List<EventShortDto> getEvents(
+    public ResponseEntity<List<EventShortDto>> getEvents(
             @RequestParam(required = false) String text,
             @RequestParam(required = false) List<Long> categories,
             @RequestParam(required = false) Boolean paid,
@@ -35,8 +36,16 @@ public class PublicEventController {
         
         log.info("GET /events with from={}, size={}", from, size);
         
-        return eventService.getEvents(text, categories, paid, rangeStart, rangeEnd,
-                onlyAvailable, sort, from, size, request);
+        // Защита от деления на ноль
+        int safeSize = size;
+        if (safeSize <= 0) {
+            safeSize = 10;
+        }
+        
+        List<EventShortDto> events = eventService.getEvents(text, categories, paid, rangeStart, rangeEnd,
+                onlyAvailable, sort, from, safeSize, request);
+        
+        return ResponseEntity.ok(events);
     }
 
     @GetMapping("/{id}")
