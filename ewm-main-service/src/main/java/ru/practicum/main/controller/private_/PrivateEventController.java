@@ -3,6 +3,7 @@ package ru.practicum.main.controller.private_;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.dto.*;
 import ru.practicum.main.service.private_.PrivateEventService;
@@ -19,11 +20,16 @@ public class PrivateEventController {
     private final PrivateEventService eventService;
 
     @GetMapping
-    public List<EventShortDto> getEvents(@PathVariable Long userId,
-                                         @RequestParam(defaultValue = "0") int from,
-                                         @RequestParam(defaultValue = "10") int size) {
+    public ResponseEntity<List<EventShortDto>> getEvents(@PathVariable Long userId,
+                                                         @RequestParam(defaultValue = "0") int from,
+                                                         @RequestParam(defaultValue = "10") int size) {
         log.info("GET /users/{}/events with from={}, size={}", userId, from, size);
-        return eventService.getEvents(userId, from, size);
+        
+        int safeFrom = Math.max(from, 0);
+        int safeSize = size <= 0 ? 10 : Math.min(size, 100);
+        
+        List<EventShortDto> events = eventService.getEvents(userId, safeFrom, safeSize);
+        return ResponseEntity.ok(events);
     }
 
     @PostMapping

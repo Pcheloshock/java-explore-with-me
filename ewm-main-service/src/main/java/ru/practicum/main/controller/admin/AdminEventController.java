@@ -3,7 +3,7 @@ package ru.practicum.main.controller.admin;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.dto.AdminEventFilterParams;
 import ru.practicum.main.dto.EventFullDto;
@@ -13,9 +13,6 @@ import ru.practicum.main.model.EventState;
 import ru.practicum.main.service.admin.AdminEventService;
 
 import javax.validation.Valid;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Positive;
-import javax.validation.constraints.PositiveOrZero;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,20 +20,19 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin/events")
 @RequiredArgsConstructor
-@Validated
 public class AdminEventController {
 
     private final AdminEventService eventService;
 
     @GetMapping
-    public List<EventFullDto> getEvents(
+    public ResponseEntity<List<EventFullDto>> getEvents(
             @RequestParam(required = false) List<Long> users,
             @RequestParam(required = false) List<EventState> states,
             @RequestParam(required = false) List<Long> categories,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeStart,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeEnd,
-            @RequestParam(defaultValue = "0") @PositiveOrZero(message = "from must be greater than or equal to 0") int from,
-            @RequestParam(defaultValue = "10") @Positive(message = "size must be greater than 0") @Max(value = 100, message = "size must not exceed 100") int size) {
+            @RequestParam(defaultValue = "0") int from,
+            @RequestParam(defaultValue = "10") int size) {
 
         log.info("GET /admin/events with from={}, size={}", from, size);
 
@@ -44,17 +40,21 @@ public class AdminEventController {
             throw new BadRequestException("Start date must be before end date");
         }
 
+        int safeFrom = Math.max(from, 0);
+        int safeSize = size <= 0 ? 10 : Math.min(size, 100);
+
         AdminEventFilterParams params = AdminEventFilterParams.builder()
                 .users(users)
                 .states(states)
                 .categories(categories)
                 .rangeStart(rangeStart)
                 .rangeEnd(rangeEnd)
-                .from(from)
-                .size(size)
+                .from(safeFrom)
+                .size(safeSize)
                 .build();
 
-        return eventService.getEvents(params);
+        List<EventFullDto> events = eventService.getEvents(params);
+        return ResponseEntity.ok(events);
     }
 
     @PatchMapping("/{eventId}")

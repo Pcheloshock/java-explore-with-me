@@ -36,14 +36,18 @@ public class PublicEventController {
         
         log.info("GET /events with from={}, size={}", from, size);
         
-        // Защита от деления на ноль
+        // Нормализация параметров
+        int safeFrom = Math.max(from, 0);
         int safeSize = size;
         if (safeSize <= 0) {
             safeSize = 10;
         }
+        if (safeSize > 100) {
+            safeSize = 100;
+        }
         
         List<EventShortDto> events = eventService.getEvents(text, categories, paid, rangeStart, rangeEnd,
-                onlyAvailable, sort, from, safeSize, request);
+                onlyAvailable, sort, safeFrom, safeSize, request);
         
         return ResponseEntity.ok(events);
     }
