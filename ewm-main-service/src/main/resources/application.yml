@@ -31,6 +31,11 @@ spring:
       mode: always
   mvc:
     throw-exception-if-no-handler-found: true
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: UTC
+    serialization:
+      write-dates-as-timestamps: false
 
 stats-service:
   url: ${STATS_SERVICE_URL:http://ewm-stats-service:9090}
