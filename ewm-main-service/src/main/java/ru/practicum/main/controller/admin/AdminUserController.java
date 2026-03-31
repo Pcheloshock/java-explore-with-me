@@ -19,7 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin/users")
 @RequiredArgsConstructor
-@Validated  // Add this annotation
+@Validated  // <-- ДОБАВИТЬ ЭТУ АННОТАЦИЮ
 public class AdminUserController {
 
     private final AdminUserService userService;
@@ -34,8 +34,8 @@ public class AdminUserController {
     @GetMapping
     public ResponseEntity<List<UserDto>> getUsers(
             @RequestParam(required = false) List<Long> ids,
-            @RequestParam(defaultValue = "0") @Min(0) Integer from,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size) {
+            @RequestParam(defaultValue = "0") @Min(0) Integer from,           // <-- ДОБАВИТЬ ВАЛИДАЦИЮ
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size) { // <-- ДОБАВИТЬ ВАЛИДАЦИЮ
 
         log.info("GET /admin/users with from={}, size={}", from, size);
 

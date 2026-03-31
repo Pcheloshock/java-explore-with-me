@@ -10,12 +10,13 @@ import ru.practicum.main.dto.*;
 import ru.practicum.main.exception.BadRequestException;
 import ru.practicum.main.exception.ConflictException;
 import ru.practicum.main.exception.NotFoundException;
-import ru.practicum.main.mapper.PrivateEventMapper;
+import ru.practicum.main.mapper.EventMapper;
 import ru.practicum.main.model.*;
 import ru.practicum.main.repository.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -26,7 +27,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
-    private final PrivateEventMapper eventMapper;
+    // Удаляем PrivateEventMapper, используем EventMapper
 
     @Override
     @Transactional(readOnly = true)
@@ -34,15 +35,16 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
-        // Защита от деления на ноль
         int safeFrom = Math.max(from, 0);
         int safeSize = size > 0 ? Math.min(size, 100) : 10;
         int page = safeFrom / safeSize;
-        
+
         Pageable pageable = PageRequest.of(page, safeSize);
         List<Event> events = eventRepository.findByInitiatorId(userId, pageable).getContent();
-        
-        return eventMapper.toShortDtoList(events);
+
+        return events.stream()
+                .map(EventMapper::toShortDto)  // Используем статический метод
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -83,7 +85,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         Event saved = eventRepository.save(event);
         log.info("Created event: {} by user: {}", saved.getTitle(), userId);
 
-        return eventMapper.toFullDto(saved);
+        return EventMapper.toFullDto(saved);  // Используем статический метод
     }
 
     @Override
@@ -96,7 +98,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
             throw new NotFoundException("Event not found for this user");
         }
 
-        return eventMapper.toFullDto(event);
+        return EventMapper.toFullDto(event);  // Используем статический метод
     }
 
     @Override
@@ -168,6 +170,6 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         Event updated = eventRepository.save(event);
         log.info("Updated event: {} by user: {}", updated.getTitle(), userId);
 
-        return eventMapper.toFullDto(updated);
+        return EventMapper.toFullDto(updated);  // Используем статический метод
     }
 }

@@ -12,10 +12,9 @@ import ru.practicum.main.dto.EventFullDto;
 import ru.practicum.main.dto.EventShortDto;
 import ru.practicum.main.exception.BadRequestException;
 import ru.practicum.main.exception.NotFoundException;
-import ru.practicum.main.mapper.PublicEventMapper;
+import ru.practicum.main.mapper.EventMapper;
 import ru.practicum.main.model.Event;
 import ru.practicum.main.model.EventState;
-import ru.practicum.main.model.RequestStatus;
 import ru.practicum.main.repository.EventRepository;
 import ru.practicum.main.repository.ParticipationRequestRepository;
 import ru.practicum.stats.client.StatsClient;
@@ -23,6 +22,7 @@ import ru.practicum.stats.client.StatsClient;
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -36,8 +36,9 @@ public class PublicEventServiceImpl implements PublicEventService {
     private final EventRepository eventRepository;
     private final ParticipationRequestRepository requestRepository;
     private final StatsClient statsClient;
-    private final PublicEventMapper eventMapper;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    // Удаляем eventMapper, используем статические методы
 
     @Override
     public List<EventShortDto> getEvents(String text, List<Long> categories, Boolean paid,
@@ -65,56 +66,44 @@ public class PublicEventServiceImpl implements PublicEventService {
         if (rangeStart == null && rangeEnd == null) {
             rangeStart = LocalDateTime.now();
         }
-        
+
         // Проверка дат
         if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
             throw new BadRequestException("Start date must be before end date");
         }
 
-        // Нормализация пагинации - защита от деления на ноль
-        int safeFrom = Math.max(from, 0);
-        int safeSize = size;
-        
-        // Если size <= 0, устанавливаем значение по умолчанию 10
-        if (safeSize <= 0) {
-            safeSize = 10;
-        }
-        // Ограничиваем максимальный размер
-        if (safeSize > 100) {
-            safeSize = 100;
-        }
-        
-        int page = safeFrom / safeSize;
-        Pageable pageable = PageRequest.of(page, safeSize);
+        int page = from / size;
+        Pageable pageable = PageRequest.of(page, size);
 
         List<Event> events = eventRepository.findAllPublished(
                 EventState.PUBLISHED, text, categories, paid, rangeStart, rangeEnd, pageable);
 
-        // Если нет событий, возвращаем пустой список
-        if (events.isEmpty()) {
-            return List.of();
+        // Возвращаем пустой список, если нет событий
+        if (events == null || events.isEmpty()) {
+            return Collections.emptyList();
         }
 
         if (onlyAvailable) {
             List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
             Map<Long, Long> confirmedRequestsMap = requestRepository.countConfirmedRequestsByEventIds(eventIds);
-            
+
             events = events.stream()
                     .filter(event -> {
                         long confirmedRequests = confirmedRequestsMap.getOrDefault(event.getId(), 0L);
                         return event.getParticipantLimit() == 0 || confirmedRequests < event.getParticipantLimit();
                     })
                     .collect(Collectors.toList());
-        }
 
-        if (events.isEmpty()) {
-            return List.of();
+            // Если после фильтрации не осталось событий
+            if (events.isEmpty()) {
+                return Collections.emptyList();
+            }
         }
 
         List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
         Map<Long, Long> viewsMap = getViewsForEventsUnique(eventIds, rangeStart, rangeEnd);
 
-        return eventMapper.toShortDtoList(events, viewsMap);
+        return EventMapper.toShortDtoList(events, viewsMap);
     }
 
     @Override
@@ -140,7 +129,8 @@ public class PublicEventServiceImpl implements PublicEventService {
 
         Long views = getViewsForEventUnique(id, event.getCreatedOn(), LocalDateTime.now());
 
-        return eventMapper.toFullDto(event, views);
+        // Используем статический метод EventMapper.toFullDto
+        return EventMapper.toFullDto(event, views);
     }
 
     private Map<Long, Long> getViewsForEventsUnique(List<Long> eventIds, LocalDateTime start, LocalDateTime end) {

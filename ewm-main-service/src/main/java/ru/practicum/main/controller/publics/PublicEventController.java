@@ -13,7 +13,6 @@ import ru.practicum.main.service.publics.PublicEventService;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
-import javax.validation.constraints.PositiveOrZero;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -21,7 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/events")
 @RequiredArgsConstructor
-@Validated  // Add this annotation
+@Validated  // <-- ДОБАВИТЬ ЭТУ АННОТАЦИЮ
 public class PublicEventController {
 
     private final PublicEventService eventService;
@@ -31,17 +30,20 @@ public class PublicEventController {
             @RequestParam(required = false) String text,
             @RequestParam(required = false) List<Long> categories,
             @RequestParam(required = false) Boolean paid,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeStart,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeEnd,
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeStart,  // <-- ДОБАВИТЬ ФОРМАТ
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeEnd,    // <-- ДОБАВИТЬ ФОРМАТ
             @RequestParam(defaultValue = "false") Boolean onlyAvailable,
             @RequestParam(required = false) String sort,
-            @RequestParam(defaultValue = "0") @Min(0) Integer from,  // Use Integer wrapper
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size,  // Use Integer wrapper
+            @RequestParam(defaultValue = "0") @Min(0) Integer from,                      // <-- ДОБАВИТЬ ВАЛИДАЦИЮ
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size,          // <-- ДОБАВИТЬ ВАЛИДАЦИЮ
             HttpServletRequest request) {
 
         log.info("GET /events with from={}, size={}", from, size);
 
-        List<EventShortDto> events = eventService.getEvents(text, categories, paid, rangeStart, rangeEnd,
+        List<EventShortDto> events = eventService.getEvents(
+                text, categories, paid, rangeStart, rangeEnd,
                 onlyAvailable, sort, from, size, request);
 
         return ResponseEntity.ok(events);

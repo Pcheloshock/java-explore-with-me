@@ -16,7 +16,6 @@ import ru.practicum.main.service.admin.AdminEventService;
 import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
-import javax.validation.constraints.PositiveOrZero;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -24,7 +23,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin/events")
 @RequiredArgsConstructor
-@Validated  // Add this annotation
+@Validated  // <-- ДОБАВИТЬ ЭТУ АННОТАЦИЮ
 public class AdminEventController {
 
     private final AdminEventService eventService;
@@ -34,10 +33,12 @@ public class AdminEventController {
             @RequestParam(required = false) List<Long> users,
             @RequestParam(required = false) List<EventState> states,
             @RequestParam(required = false) List<Long> categories,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeStart,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeEnd,
-            @RequestParam(defaultValue = "0") @Min(0) Integer from,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size) {
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeStart,  // <-- ДОБАВИТЬ ФОРМАТ
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeEnd,    // <-- ДОБАВИТЬ ФОРМАТ
+            @RequestParam(defaultValue = "0") @Min(0) Integer from,                      // <-- ДОБАВИТЬ ВАЛИДАЦИЮ
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size) {        // <-- ДОБАВИТЬ ВАЛИДАЦИЮ
 
         log.info("GET /admin/events with from={}, size={}", from, size);
 
