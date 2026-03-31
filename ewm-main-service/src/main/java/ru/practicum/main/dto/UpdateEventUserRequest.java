@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import ru.practicum.main.model.EventStateAction;
 
+import javax.validation.constraints.Min;
+import javax.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 @Data
@@ -14,8 +16,12 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateEventUserRequest {
+    @Size(min = 20, max = 2000)
     private String annotation;
+
     private Long category;
+
+    @Size(min = 20, max = 7000)
     private String description;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
@@ -23,9 +29,15 @@ public class UpdateEventUserRequest {
 
     private LocationDto location;
     private Boolean paid;
+
+    @Min(0)  // Добавляем валидацию: не может быть отрицательным
     private Integer participantLimit;
+
     private Boolean requestModeration;
+
+    @Size(min = 3, max = 120)
     private String title;
+
     private EventStateAction stateAction;
 
     public LocalDateTime getEventDateAsLocalDateTime() {

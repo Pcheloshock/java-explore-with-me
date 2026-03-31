@@ -23,7 +23,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin/events")
 @RequiredArgsConstructor
-@Validated  // <-- ДОБАВИТЬ ЭТУ АННОТАЦИЮ
+@Validated
 public class AdminEventController {
 
     private final AdminEventService eventService;
@@ -34,11 +34,11 @@ public class AdminEventController {
             @RequestParam(required = false) List<EventState> states,
             @RequestParam(required = false) List<Long> categories,
             @RequestParam(required = false)
-            @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeStart,  // <-- ДОБАВИТЬ ФОРМАТ
+            @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeStart,
             @RequestParam(required = false)
-            @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeEnd,    // <-- ДОБАВИТЬ ФОРМАТ
-            @RequestParam(defaultValue = "0") @Min(0) Integer from,                      // <-- ДОБАВИТЬ ВАЛИДАЦИЮ
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size) {        // <-- ДОБАВИТЬ ВАЛИДАЦИЮ
+            @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeEnd,
+            @RequestParam(defaultValue = "0") @Min(0) Integer from,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size) {
 
         log.info("GET /admin/events with from={}, size={}", from, size);
 
@@ -64,6 +64,6 @@ public class AdminEventController {
     public EventFullDto updateEvent(@PathVariable Long eventId,
                                     @Valid @RequestBody UpdateEventAdminRequest updateRequest) {
         log.info("PATCH /admin/events/{}", eventId);
-        return eventService.updateEvent(eventId, updateRequest);
+        return eventService.updateEvent(eventId, updateRequest);  // Добавляем вызов сервиса
     }
 }

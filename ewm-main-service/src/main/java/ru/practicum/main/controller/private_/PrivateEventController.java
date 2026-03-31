@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/users/{userId}/events")
 @RequiredArgsConstructor
-@Validated  // <-- ДОБАВИТЬ ЭТУ АННОТАЦИЮ
+@Validated
 public class PrivateEventController {
 
     private final PrivateEventService eventService;
@@ -26,8 +26,8 @@ public class PrivateEventController {
     @GetMapping
     public ResponseEntity<List<EventShortDto>> getEvents(
             @PathVariable Long userId,
-            @RequestParam(defaultValue = "0") @Min(0) Integer from,           // <-- ДОБАВИТЬ ВАЛИДАЦИЮ
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size) { // <-- ДОБАВИТЬ ВАЛИДАЦИЮ
+            @RequestParam(defaultValue = "0") @Min(0) Integer from,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size) {
 
         log.info("GET /users/{}/events with from={}, size={}", userId, from, size);
 
@@ -55,6 +55,6 @@ public class PrivateEventController {
                                     @PathVariable Long eventId,
                                     @Valid @RequestBody UpdateEventUserRequest updateRequest) {
         log.info("PATCH /users/{}/events/{}", userId, eventId);
-        return eventService.updateEvent(userId, eventId, updateRequest);
+        return eventService.updateEvent(userId, eventId, updateRequest);  // Добавляем вызов сервиса
     }
 }

@@ -34,6 +34,7 @@ public class NewEventDto {
 
     private Boolean paid;
 
+    @Min(0)  // Добавляем валидацию: не может быть отрицательным
     private Integer participantLimit;
 
     private Boolean requestModeration;
