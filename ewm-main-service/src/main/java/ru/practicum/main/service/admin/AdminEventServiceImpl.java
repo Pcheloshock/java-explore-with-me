@@ -31,21 +31,17 @@ public class AdminEventServiceImpl implements AdminEventService {
     @Override
     @Transactional(readOnly = true)
     public List<EventFullDto> getEvents(AdminEventFilterParams params) {
-        // Защита от деления на ноль
-        int from = Math.max(params.getFrom(), 0);
-        int size = params.getSize() > 0 ? Math.min(params.getSize(), 100) : 10;
-        int page = from / size;
-        
-        Pageable pageable = PageRequest.of(page, size);
+        // Manual validation removed since params.from and params.size are already validated
+        Pageable pageable = PageRequest.of(params.getFrom() / params.getSize(), params.getSize());
 
         return eventRepository.findAllByAdmin(
-                params.getUsers(),
-                params.getStates(),
-                params.getCategories(),
-                params.getRangeStart(),
-                params.getRangeEnd(),
-                pageable
-        ).stream()
+                        params.getUsers(),
+                        params.getStates(),
+                        params.getCategories(),
+                        params.getRangeStart(),
+                        params.getRangeEnd(),
+                        pageable
+                ).stream()
                 .map(eventMapper::toFullDto)
                 .collect(Collectors.toList());
     }

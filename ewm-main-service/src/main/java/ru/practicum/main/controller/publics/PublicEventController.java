@@ -4,12 +4,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.dto.EventFullDto;
 import ru.practicum.main.dto.EventShortDto;
 import ru.practicum.main.service.publics.PublicEventService;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.PositiveOrZero;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -17,6 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/events")
 @RequiredArgsConstructor
+@Validated  // Add this annotation
 public class PublicEventController {
 
     private final PublicEventService eventService;
@@ -30,25 +35,15 @@ public class PublicEventController {
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeEnd,
             @RequestParam(defaultValue = "false") Boolean onlyAvailable,
             @RequestParam(required = false) String sort,
-            @RequestParam(defaultValue = "0") int from,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "0") @Min(0) Integer from,  // Use Integer wrapper
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size,  // Use Integer wrapper
             HttpServletRequest request) {
-        
+
         log.info("GET /events with from={}, size={}", from, size);
-        
-        // Нормализация параметров
-        int safeFrom = Math.max(from, 0);
-        int safeSize = size;
-        if (safeSize <= 0) {
-            safeSize = 10;
-        }
-        if (safeSize > 100) {
-            safeSize = 100;
-        }
-        
+
         List<EventShortDto> events = eventService.getEvents(text, categories, paid, rangeStart, rangeEnd,
-                onlyAvailable, sort, safeFrom, safeSize, request);
-        
+                onlyAvailable, sort, from, size, request);
+
         return ResponseEntity.ok(events);
     }
 
