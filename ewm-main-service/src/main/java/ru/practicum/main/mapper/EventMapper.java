@@ -3,7 +3,11 @@ package ru.practicum.main.mapper;
 import ru.practicum.main.dto.EventFullDto;
 import ru.practicum.main.dto.EventShortDto;
 import ru.practicum.main.model.Event;
-import ru.practicum.main.model.Location;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class EventMapper {
 
@@ -16,17 +20,18 @@ public class EventMapper {
             return null;
         }
 
-        return EventShortDto.builder()
-                .id(event.getId())
-                .annotation(event.getAnnotation())
-                .category(CategoryMapper.toDto(event.getCategory()))
-                .confirmedRequests(0L) // Будет заполнено в сервисе
-                .eventDate(event.getEventDate())
-                .initiator(UserMapper.toShortDto(event.getInitiator()))
-                .paid(event.getPaid())
-                .title(event.getTitle())
-                .views(0L) // Будет заполнено в сервисе
-                .build();
+        EventShortDto dto = new EventShortDto();
+        dto.setId(event.getId());
+        dto.setAnnotation(event.getAnnotation());
+        dto.setCategory(CategoryMapper.toDto(event.getCategory()));
+        dto.setConfirmedRequests(0L);
+        dto.setEventDate(event.getEventDate());
+        dto.setInitiator(UserMapper.toShortDto(event.getInitiator()));
+        dto.setPaid(event.getPaid());
+        dto.setTitle(event.getTitle());
+        dto.setViews(0L);
+
+        return dto;
     }
 
     public static EventFullDto toFullDto(Event event) {
@@ -34,24 +39,25 @@ public class EventMapper {
             return null;
         }
 
-        return EventFullDto.builder()
-                .id(event.getId())
-                .annotation(event.getAnnotation())
-                .category(CategoryMapper.toDto(event.getCategory()))
-                .confirmedRequests(0L) // Будет заполнено в сервисе
-                .createdOn(event.getCreatedOn())
-                .description(event.getDescription())
-                .eventDate(event.getEventDate())
-                .initiator(UserMapper.toShortDto(event.getInitiator()))
-                .location(LocationMapper.toDto(event.getLocation()))
-                .paid(event.getPaid())
-                .participantLimit(event.getParticipantLimit())
-                .publishedOn(event.getPublishedOn())
-                .requestModeration(event.getRequestModeration())
-                .state(event.getState())
-                .title(event.getTitle())
-                .views(0L) // Будет заполнено в сервисе
-                .build();
+        EventFullDto dto = new EventFullDto();
+        dto.setId(event.getId());
+        dto.setAnnotation(event.getAnnotation());
+        dto.setCategory(CategoryMapper.toDto(event.getCategory()));
+        dto.setConfirmedRequests(0L);
+        dto.setCreatedOn(event.getCreatedOn());
+        dto.setDescription(event.getDescription());
+        dto.setEventDate(event.getEventDate());
+        dto.setInitiator(UserMapper.toShortDto(event.getInitiator()));
+        dto.setLocation(LocationMapper.toDto(event.getLocation()));
+        dto.setPaid(event.getPaid());
+        dto.setParticipantLimit(event.getParticipantLimit());
+        dto.setPublishedOn(event.getPublishedOn());
+        dto.setRequestModeration(event.getRequestModeration());
+        dto.setState(event.getState());
+        dto.setTitle(event.getTitle());
+        dto.setViews(0L);
+
+        return dto;
     }
 
     public static EventFullDto toFullDto(Event event, Long views) {

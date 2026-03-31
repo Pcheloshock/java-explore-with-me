@@ -26,30 +26,40 @@ public class AdminEventServiceImpl implements AdminEventService {
 
     private final EventRepository eventRepository;
     private final CategoryRepository categoryRepository;
-    private final EventMapper eventMapper;
 
     @Override
     @Transactional(readOnly = true)
     public List<EventFullDto> getEvents(AdminEventFilterParams params) {
-        // Manual validation removed since params.from and params.size are already validated
-        Pageable pageable = PageRequest.of(params.getFrom() / params.getSize(), params.getSize());
+        if (params.getSize() <= 0) {
+            throw new BadRequestException("Size must be positive");
+        }
 
-        return eventRepository.findAllByAdmin(
-                        params.getUsers(),
-                        params.getStates(),
-                        params.getCategories(),
-                        params.getRangeStart(),
-                        params.getRangeEnd(),
-                        pageable
-                ).stream()
-                .map(eventMapper::toFullDto)
+        if (params.getFrom() < 0) {
+            throw new BadRequestException("From must be non-negative");
+        }
+
+        int page = params.getFrom() / params.getSize();
+        Pageable pageable = PageRequest.of(page, params.getSize());
+
+        // Исправлено: метод возвращает Page<Event>, нужно вызвать .getContent()
+        List<Event> events = eventRepository.findAllByAdmin(
+                params.getUsers(),
+                params.getStates(),
+                params.getCategories(),
+                params.getRangeStart(),
+                params.getRangeEnd(),
+                pageable
+        ).getContent();  // Добавляем .getContent() для получения списка
+
+        return events.stream()
+                .map(EventMapper::toFullDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     public EventFullDto updateEvent(Long eventId, UpdateEventAdminRequest updateRequest) {
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Event not found"));
+                .orElseThrow(() -> new NotFoundException("Event not found with id: " + eventId));
 
         if (updateRequest.getAnnotation() != null) {
             event.setAnnotation(updateRequest.getAnnotation());
@@ -57,7 +67,7 @@ public class AdminEventServiceImpl implements AdminEventService {
 
         if (updateRequest.getCategory() != null) {
             Category category = categoryRepository.findById(updateRequest.getCategory())
-                    .orElseThrow(() -> new NotFoundException("Category not found"));
+                    .orElseThrow(() -> new NotFoundException("Category not found with id: " + updateRequest.getCategory()));
             event.setCategory(category);
         }
 
@@ -114,6 +124,6 @@ public class AdminEventServiceImpl implements AdminEventService {
         Event updated = eventRepository.save(event);
         log.info("Admin updated event: {}", updated.getTitle());
 
-        return eventMapper.toFullDto(updated);
+        return EventMapper.toFullDto(updated);
     }
 }
