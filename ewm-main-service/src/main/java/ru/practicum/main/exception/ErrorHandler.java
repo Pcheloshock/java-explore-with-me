@@ -13,7 +13,9 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import javax.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -31,6 +33,31 @@ public class ErrorHandler {
         });
 
         log.error("Validation error: {}", errors);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.BAD_REQUEST.value());
+        response.put("error", "Validation failed");
+        response.put("message", errors);
+        response.put("timestamp", LocalDateTime.now());
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
+        log.error("Constraint violation: {}", ex.getMessage());
+
+        Map<String, String> errors = new HashMap<>();
+        ex.getConstraintViolations().forEach(violation -> {
+            // Извлекаем имя параметра из propertyPath
+            String propertyPath = violation.getPropertyPath().toString();
+            // Убираем префикс, если есть (например, "addRequest.eventId" -> "eventId")
+            String fieldName = propertyPath.contains(".") ?
+                    propertyPath.substring(propertyPath.lastIndexOf('.') + 1) :
+                    propertyPath;
+            String message = violation.getMessage();
+            errors.put(fieldName, message);
+        });
 
         Map<String, Object> response = new HashMap<>();
         response.put("status", HttpStatus.BAD_REQUEST.value());
@@ -75,19 +102,6 @@ public class ErrorHandler {
         response.put("status", HttpStatus.BAD_REQUEST.value());
         response.put("error", "Bad Request");
         response.put("message", "Malformed JSON request");
-        response.put("timestamp", LocalDateTime.now());
-
-        return ResponseEntity.badRequest().body(response);
-    }
-
-    @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
-        log.error("Constraint violation: {}", ex.getMessage());
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", HttpStatus.BAD_REQUEST.value());
-        response.put("error", "Bad Request");
-        response.put("message", ex.getMessage());
         response.put("timestamp", LocalDateTime.now());
 
         return ResponseEntity.badRequest().body(response);

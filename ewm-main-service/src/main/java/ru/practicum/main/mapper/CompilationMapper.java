@@ -1,33 +1,28 @@
 package ru.practicum.main.mapper;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 import ru.practicum.main.dto.CompilationDto;
 import ru.practicum.main.dto.EventShortDto;
 import ru.practicum.main.model.Compilation;
 import ru.practicum.main.model.Event;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Component
-@RequiredArgsConstructor
 public class CompilationMapper {
 
-    private final EventMapper eventMapper;
+    private CompilationMapper() {
+        // Приватный конструктор для утилитарного класса
+    }
 
-    public CompilationDto toDto(Compilation compilation) {
+    public static CompilationDto toDto(Compilation compilation, List<EventShortDto> events) {
         if (compilation == null) {
             return null;
         }
 
-        List<EventShortDto> events = compilation.getEvents().stream()
-                .map(eventMapper::toShortDto)
-                .collect(Collectors.toList());
-
         return CompilationDto.builder()
                 .id(compilation.getId())
-                .events(events)
+                .events(events != null ? events : Collections.emptyList())
                 .pinned(compilation.getPinned())
                 .title(compilation.getTitle())
                 .build();

@@ -3,20 +3,22 @@ package ru.practicum.main.controller.private_;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.dto.EventRequestStatusUpdateRequest;
 import ru.practicum.main.dto.EventRequestStatusUpdateResult;
 import ru.practicum.main.dto.ParticipationRequestDto;
-import ru.practicum.main.exception.BadRequestException;
 import ru.practicum.main.service.private_.PrivateRequestService;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @Slf4j
 @RestController
 @RequestMapping("/users/{userId}")
 @RequiredArgsConstructor
+@Validated  // Добавляем для активации валидации
 public class PrivateRequestController {
 
     private final PrivateRequestService requestService;
@@ -30,14 +32,8 @@ public class PrivateRequestController {
     @PostMapping("/requests")
     @ResponseStatus(HttpStatus.CREATED)
     public ParticipationRequestDto addRequest(@PathVariable Long userId,
-                                              @RequestParam(required = false) Long eventId) {
+                                              @RequestParam @NotNull Long eventId) {  // @NotNull гарантирует наличие параметра
         log.info("POST /users/{}/requests with eventId={}", userId, eventId);
-        
-        // Ручная проверка обязательного параметра
-        if (eventId == null) {
-            throw new BadRequestException("Required request parameter 'eventId' is not present");
-        }
-        
         return requestService.addRequest(userId, eventId);
     }
 
