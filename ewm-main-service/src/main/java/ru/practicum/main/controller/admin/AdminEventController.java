@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.dto.AdminEventFilterParams;
 import ru.practicum.main.dto.EventFullDto;
@@ -14,8 +13,6 @@ import ru.practicum.main.model.EventState;
 import ru.practicum.main.service.admin.AdminEventService;
 
 import javax.validation.Valid;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -23,7 +20,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin/events")
 @RequiredArgsConstructor
-@Validated
 public class AdminEventController {
 
     private final AdminEventService eventService;
@@ -37,8 +33,8 @@ public class AdminEventController {
             @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeStart,
             @RequestParam(required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime rangeEnd,
-            @RequestParam(defaultValue = "0") @Min(0) Integer from,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size) {
+            @RequestParam(defaultValue = "0") int from,
+            @RequestParam(defaultValue = "10") int size) {
 
         log.info("GET /admin/events with from={}, size={}", from, size);
 
@@ -64,6 +60,6 @@ public class AdminEventController {
     public EventFullDto updateEvent(@PathVariable Long eventId,
                                     @Valid @RequestBody UpdateEventAdminRequest updateRequest) {
         log.info("PATCH /admin/events/{}", eventId);
-        return eventService.updateEvent(eventId, updateRequest);  // Добавляем вызов сервиса
+        return eventService.updateEvent(eventId, updateRequest);
     }
 }

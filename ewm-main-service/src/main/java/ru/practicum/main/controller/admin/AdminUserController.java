@@ -4,22 +4,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.dto.NewUserRequest;
 import ru.practicum.main.dto.UserDto;
 import ru.practicum.main.service.admin.AdminUserService;
 
 import javax.validation.Valid;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
 import java.util.List;
 
 @Slf4j
 @RestController
 @RequestMapping("/admin/users")
 @RequiredArgsConstructor
-@Validated
 public class AdminUserController {
 
     private final AdminUserService userService;
@@ -34,8 +30,8 @@ public class AdminUserController {
     @GetMapping
     public ResponseEntity<List<UserDto>> getUsers(
             @RequestParam(required = false) List<Long> ids,
-            @RequestParam(defaultValue = "0") @Min(0) Integer from,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size) {
+            @RequestParam(defaultValue = "0") int from,
+            @RequestParam(defaultValue = "10") int size) {
 
         log.info("GET /admin/users with from={}, size={}", from, size);
 

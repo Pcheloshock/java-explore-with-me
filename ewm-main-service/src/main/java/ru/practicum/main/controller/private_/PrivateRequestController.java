@@ -3,7 +3,6 @@ package ru.practicum.main.controller.private_;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.dto.EventRequestStatusUpdateRequest;
 import ru.practicum.main.dto.EventRequestStatusUpdateResult;
@@ -18,7 +17,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/users/{userId}")
 @RequiredArgsConstructor
-@Validated  // Добавляем для активации валидации
 public class PrivateRequestController {
 
     private final PrivateRequestService requestService;
@@ -32,7 +30,7 @@ public class PrivateRequestController {
     @PostMapping("/requests")
     @ResponseStatus(HttpStatus.CREATED)
     public ParticipationRequestDto addRequest(@PathVariable Long userId,
-                                              @RequestParam @NotNull Long eventId) {  // @NotNull гарантирует наличие параметра
+                                              @RequestParam @NotNull Long eventId) {
         log.info("POST /users/{}/requests with eventId={}", userId, eventId);
         return requestService.addRequest(userId, eventId);
     }

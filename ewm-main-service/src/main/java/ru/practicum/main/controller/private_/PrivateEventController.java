@@ -4,21 +4,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.dto.*;
 import ru.practicum.main.service.private_.PrivateEventService;
 
 import javax.validation.Valid;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
 import java.util.List;
 
 @Slf4j
 @RestController
 @RequestMapping("/users/{userId}/events")
 @RequiredArgsConstructor
-@Validated
 public class PrivateEventController {
 
     private final PrivateEventService eventService;
@@ -26,8 +22,8 @@ public class PrivateEventController {
     @GetMapping
     public ResponseEntity<List<EventShortDto>> getEvents(
             @PathVariable Long userId,
-            @RequestParam(defaultValue = "0") @Min(0) Integer from,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size) {
+            @RequestParam(defaultValue = "0") int from,
+            @RequestParam(defaultValue = "10") int size) {
 
         log.info("GET /users/{}/events with from={}, size={}", userId, from, size);
 
