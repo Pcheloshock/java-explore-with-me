@@ -38,6 +38,11 @@ public class PublicCompilationServiceImpl implements PublicCompilationService {
             compilations = compilationRepository.findAll(pageable).getContent();
         }
 
+        // Возвращаем пустой список вместо null
+        if (compilations == null || compilations.isEmpty()) {
+            return List.of();
+        }
+
         return compilations.stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());

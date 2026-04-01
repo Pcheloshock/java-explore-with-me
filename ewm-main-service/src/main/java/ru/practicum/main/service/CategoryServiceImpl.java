@@ -85,7 +85,14 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional(readOnly = true)
     public List<CategoryDto> getCategories(int from, int size) {
         Pageable pageable = PageRequest.of(from / size, size);
-        return categoryRepository.findAll(pageable).stream()
+        List<Category> categories = categoryRepository.findAll(pageable).getContent();
+
+        // Возвращаем пустой список вместо null
+        if (categories == null || categories.isEmpty()) {
+            return List.of();  // или Collections.emptyList()
+        }
+
+        return categories.stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }

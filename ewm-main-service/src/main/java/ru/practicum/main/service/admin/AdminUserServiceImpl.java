@@ -26,11 +26,10 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     public UserDto addUser(NewUserRequest newUserRequest) {
-        // Явная проверка на существование пользователя с таким email
         if (userRepository.existsByEmail(newUserRequest.getEmail())) {
             throw new ConflictException("User with email " + newUserRequest.getEmail() + " already exists");
         }
-        
+
         User user = User.builder()
                 .name(newUserRequest.getName())
                 .email(newUserRequest.getEmail())
@@ -44,13 +43,23 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     public List<UserDto> getUsers(List<Long> ids, int from, int size) {
-        Pageable pageable = PageRequest.of(from / size, size);
+        // Защита от некорректных значений
+        int safeFrom = Math.max(from, 0);
+        int safeSize = size > 0 ? Math.min(size, 100) : 10;
+        int page = safeFrom / safeSize;
+
+        Pageable pageable = PageRequest.of(page, safeSize);
 
         List<User> users;
         if (ids == null || ids.isEmpty()) {
             users = userRepository.findAll(pageable).getContent();
         } else {
             users = userRepository.findAllById(ids);
+        }
+
+        // Возвращаем пустой список вместо null
+        if (users == null || users.isEmpty()) {
+            return List.of();
         }
 
         return users.stream()
