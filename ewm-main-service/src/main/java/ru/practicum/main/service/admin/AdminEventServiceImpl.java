@@ -16,6 +16,7 @@ import ru.practicum.main.repository.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -26,6 +27,7 @@ public class AdminEventServiceImpl implements AdminEventService {
 
     private final EventRepository eventRepository;
     private final CategoryRepository categoryRepository;
+    private final ParticipationRequestRepository requestRepository; // ДОБАВЛЕНО
 
     @Override
     @Transactional(readOnly = true)
@@ -41,7 +43,6 @@ public class AdminEventServiceImpl implements AdminEventService {
         int page = params.getFrom() / params.getSize();
         Pageable pageable = PageRequest.of(page, params.getSize());
 
-        // Исправлено: метод возвращает Page<Event>, нужно вызвать .getContent()
         List<Event> events = eventRepository.findAllByAdmin(
                 params.getUsers(),
                 params.getStates(),
@@ -49,11 +50,33 @@ public class AdminEventServiceImpl implements AdminEventService {
                 params.getRangeStart(),
                 params.getRangeEnd(),
                 pageable
-        ).getContent();  // Добавляем .getContent() для получения списка
+        ).getContent();
+
+        // ДОБАВЛЕНО: получаем подтверждённые запросы для всех событий
+        if (events.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
+        Map<Long, Long> confirmedRequestsMap = requestRepository.countConfirmedRequestsByEventIds(eventIds);
+
+        // Получаем просмотры (если есть StatsClient)
+        Map<Long, Long> viewsMap = getViewsForEvents(eventIds);
 
         return events.stream()
-                .map(EventMapper::toFullDto)
+                .map(event -> EventMapper.toFullDto(
+                        event,
+                        viewsMap.getOrDefault(event.getId(), 0L),
+                        confirmedRequestsMap.getOrDefault(event.getId(), 0L)
+                ))
                 .collect(Collectors.toList());
+    }
+
+    // Вспомогательный метод для получения просмотров
+    private Map<Long, Long> getViewsForEvents(List<Long> eventIds) {
+        // TODO: Реализовать через StatsClient
+        // Пока возвращаем пустую карту
+        return Map.of();
     }
 
     @Override
@@ -124,6 +147,10 @@ public class AdminEventServiceImpl implements AdminEventService {
         Event updated = eventRepository.save(event);
         log.info("Admin updated event: {}", updated.getTitle());
 
-        return EventMapper.toFullDto(updated);
+        // ДОБАВЛЕНО: получаем confirmedRequests для ответа
+        long confirmedRequests = requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED);
+        Long views = 0L; // можно получить из statsClient
+
+        return EventMapper.toFullDto(updated, views, confirmedRequests);
     }
 }

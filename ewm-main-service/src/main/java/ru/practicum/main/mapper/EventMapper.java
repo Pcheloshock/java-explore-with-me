@@ -60,12 +60,23 @@ public class EventMapper {
         return dto;
     }
 
-    public static EventFullDto toFullDto(Event event, Long views) {
+    // НОВЫЙ МЕТОД: toFullDto с views и confirmedRequests
+    public static EventFullDto toFullDto(Event event, Long views, Long confirmedRequests) {
         EventFullDto dto = toFullDto(event);
-        if (dto != null && views != null) {
-            dto.setViews(views);
+        if (dto != null) {
+            if (views != null) {
+                dto.setViews(views);
+            }
+            if (confirmedRequests != null) {
+                dto.setConfirmedRequests(confirmedRequests);
+            }
         }
         return dto;
+    }
+
+    // Существующий метод toFullDto с views
+    public static EventFullDto toFullDto(Event event, Long views) {
+        return toFullDto(event, views, null);
     }
 
     public static List<EventShortDto> toShortDtoList(List<Event> events, Map<Long, Long> viewsMap) {
@@ -78,6 +89,30 @@ public class EventMapper {
                     EventShortDto dto = toShortDto(event);
                     if (dto != null && viewsMap != null) {
                         dto.setViews(viewsMap.getOrDefault(event.getId(), 0L));
+                    }
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
+    // НОВЫЙ МЕТОД: toShortDtoList с views и confirmedRequests
+    public static List<EventShortDto> toShortDtoList(List<Event> events,
+                                                     Map<Long, Long> viewsMap,
+                                                     Map<Long, Long> confirmedRequestsMap) {
+        if (events == null) {
+            return Collections.emptyList();
+        }
+
+        return events.stream()
+                .map(event -> {
+                    EventShortDto dto = toShortDto(event);
+                    if (dto != null) {
+                        if (viewsMap != null) {
+                            dto.setViews(viewsMap.getOrDefault(event.getId(), 0L));
+                        }
+                        if (confirmedRequestsMap != null) {
+                            dto.setConfirmedRequests(confirmedRequestsMap.getOrDefault(event.getId(), 0L));
+                        }
                     }
                     return dto;
                 })

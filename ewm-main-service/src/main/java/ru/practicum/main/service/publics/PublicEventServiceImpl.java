@@ -38,8 +38,6 @@ public class PublicEventServiceImpl implements PublicEventService {
     private final StatsClient statsClient;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    // Удаляем eventMapper, используем статические методы
-
     @Override
     public List<EventShortDto> getEvents(String text, List<Long> categories, Boolean paid,
                                          LocalDateTime rangeStart, LocalDateTime rangeEnd,
@@ -78,15 +76,16 @@ public class PublicEventServiceImpl implements PublicEventService {
         List<Event> events = eventRepository.findAllPublished(
                 EventState.PUBLISHED, text, categories, paid, rangeStart, rangeEnd, pageable);
 
-        // Возвращаем пустой список, если нет событий
         if (events == null || events.isEmpty()) {
             return Collections.emptyList();
         }
 
-        if (onlyAvailable) {
-            List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
-            Map<Long, Long> confirmedRequestsMap = requestRepository.countConfirmedRequestsByEventIds(eventIds);
+        // ИЗМЕНЕНО: получаем confirmedRequests ДО фильтрации onlyAvailable
+        List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
+        Map<Long, Long> confirmedRequestsMap = requestRepository.countConfirmedRequestsByEventIds(eventIds);
+        Map<Long, Long> viewsMap = getViewsForEventsUnique(eventIds, rangeStart, rangeEnd);
 
+        if (onlyAvailable) {
             events = events.stream()
                     .filter(event -> {
                         long confirmedRequests = confirmedRequestsMap.getOrDefault(event.getId(), 0L);
@@ -94,16 +93,16 @@ public class PublicEventServiceImpl implements PublicEventService {
                     })
                     .collect(Collectors.toList());
 
-            // Если после фильтрации не осталось событий
             if (events.isEmpty()) {
                 return Collections.emptyList();
             }
+
+            // Обновляем eventIds после фильтрации
+            eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
         }
 
-        List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
-        Map<Long, Long> viewsMap = getViewsForEventsUnique(eventIds, rangeStart, rangeEnd);
-
-        return EventMapper.toShortDtoList(events, viewsMap);
+        // ИЗМЕНЕНО: используем метод маппинга с confirmedRequests
+        return EventMapper.toShortDtoList(events, viewsMap, confirmedRequestsMap);
     }
 
     @Override
@@ -129,8 +128,10 @@ public class PublicEventServiceImpl implements PublicEventService {
 
         Long views = getViewsForEventUnique(id, event.getCreatedOn(), LocalDateTime.now());
 
-        // Используем статический метод EventMapper.toFullDto
-        return EventMapper.toFullDto(event, views);
+        // ДОБАВЛЕНО: получаем confirmedRequests
+        long confirmedRequests = requestRepository.countByEventIdAndStatus(id, ru.practicum.main.model.RequestStatus.CONFIRMED);
+
+        return EventMapper.toFullDto(event, views, confirmedRequests);
     }
 
     private Map<Long, Long> getViewsForEventsUnique(List<Long> eventIds, LocalDateTime start, LocalDateTime end) {
