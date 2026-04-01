@@ -19,7 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/admin/users")
 @RequiredArgsConstructor
-@Validated  // <-- ДОБАВИТЬ ЭТУ АННОТАЦИЮ
+@Validated
 public class AdminUserController {
 
     private final AdminUserService userService;

@@ -55,6 +55,6 @@ public class PrivateEventController {
                                     @PathVariable Long eventId,
                                     @Valid @RequestBody UpdateEventUserRequest updateRequest) {
         log.info("PATCH /users/{}/events/{}", userId, eventId);
-        return eventService.updateEvent(userId, eventId, updateRequest);  // Добавляем вызов сервиса
+        return eventService.updateEvent(userId, eventId, updateRequest);
     }
 }
