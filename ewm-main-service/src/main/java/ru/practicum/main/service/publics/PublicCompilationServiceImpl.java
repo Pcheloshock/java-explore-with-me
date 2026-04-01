@@ -29,17 +29,30 @@ public class PublicCompilationServiceImpl implements PublicCompilationService {
 
     @Override
     public List<CompilationDto> getCompilations(Boolean pinned, int from, int size) {
-        Pageable pageable = PageRequest.of(from / size, size);
+        log.info("Getting compilations with pinned={}, from={}, size={}", pinned, from, size);
+
+        // Защита от деления на ноль и некорректных значений
+        int safeFrom = Math.max(from, 0);
+        int safeSize = size > 0 ? Math.min(size, 100) : 10;
+        int page = safeFrom / safeSize;
+
+        Pageable pageable = PageRequest.of(page, safeSize);
+        log.debug("Pageable: page={}, size={}", page, safeSize);
 
         List<Compilation> compilations;
         if (pinned != null) {
+            log.debug("Finding compilations with pinned={}", pinned);
             compilations = compilationRepository.findByPinned(pinned, pageable).getContent();
         } else {
+            log.debug("Finding all compilations");
             compilations = compilationRepository.findAll(pageable).getContent();
         }
 
+        log.info("Found {} compilations", compilations.size());
+
         // Возвращаем пустой список вместо null
         if (compilations == null || compilations.isEmpty()) {
+            log.debug("No compilations found, returning empty list");
             return List.of();
         }
 
@@ -50,13 +63,15 @@ public class PublicCompilationServiceImpl implements PublicCompilationService {
 
     @Override
     public CompilationDto getCompilation(Long compId) {
+        log.info("Getting compilation with id={}", compId);
         Compilation compilation = compilationRepository.findById(compId)
-                .orElseThrow(() -> new NotFoundException("Compilation not found"));
+                .orElseThrow(() -> new NotFoundException("Compilation not found with id: " + compId));
 
         return mapToDto(compilation);
     }
 
     private CompilationDto mapToDto(Compilation compilation) {
+        log.debug("Mapping compilation to DTO: id={}, title={}", compilation.getId(), compilation.getTitle());
         List<EventShortDto> events = compilation.getEvents().stream()
                 .map(this::mapEventToShortDto)
                 .collect(Collectors.toList());

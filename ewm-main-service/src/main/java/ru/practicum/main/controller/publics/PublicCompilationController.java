@@ -15,7 +15,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/compilations")
 @RequiredArgsConstructor
-@Validated  // ДОБАВИТЬ
+@Validated
 public class PublicCompilationController {
 
     private final PublicCompilationService compilationService;
@@ -23,10 +23,20 @@ public class PublicCompilationController {
     @GetMapping
     public List<CompilationDto> getCompilations(
             @RequestParam(required = false) Boolean pinned,
-            @RequestParam(defaultValue = "0") @Min(0) Integer from,  // ИЗМЕНИТЬ int -> Integer
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size) {  // ДОБАВИТЬ @Min, @Max
-        log.info("GET /compilations with pinned={}, from={}, size={}", pinned, from, size);
-        return compilationService.getCompilations(pinned, from, size);
+            @RequestParam(defaultValue = "0") @Min(0) Integer from,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size) {
+
+        int safeFrom = from != null ? from : 0;
+        int safeSize = size != null ? size : 10;
+
+        log.info("GET /compilations with pinned={}, from={}, size={}", pinned, safeFrom, safeSize);
+
+        try {
+            return compilationService.getCompilations(pinned, safeFrom, safeSize);
+        } catch (Exception e) {
+            log.error("Error getting compilations: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     @GetMapping("/{compId}")

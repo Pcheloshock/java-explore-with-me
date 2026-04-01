@@ -15,17 +15,28 @@ import java.util.List;
 @RestController
 @RequestMapping("/categories")
 @RequiredArgsConstructor
-@Validated  // ДОБАВИТЬ
+@Validated
 public class PublicCategoryController {
 
     private final CategoryService categoryService;
 
     @GetMapping
     public List<CategoryDto> getCategories(
-            @RequestParam(defaultValue = "0") @Min(0) Integer from,  // ИЗМЕНИТЬ int -> Integer
-            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size) {  // ДОБАВИТЬ @Min, @Max
-        log.info("GET /categories with from={}, size={}", from, size);
-        return categoryService.getCategories(from, size);
+            @RequestParam(defaultValue = "0") @Min(0) Integer from,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(100) Integer size) {
+
+        // Защита от null (хотя defaultValue должен защищать)
+        int safeFrom = from != null ? from : 0;
+        int safeSize = size != null ? size : 10;
+
+        log.info("GET /categories with from={}, size={}", safeFrom, safeSize);
+
+        try {
+            return categoryService.getCategories(safeFrom, safeSize);
+        } catch (Exception e) {
+            log.error("Error getting categories: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     @GetMapping("/{catId}")

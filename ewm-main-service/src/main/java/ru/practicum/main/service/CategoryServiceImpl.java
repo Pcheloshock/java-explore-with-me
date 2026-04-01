@@ -31,31 +31,33 @@ public class CategoryServiceImpl implements CategoryService {
     // Admin методы
     @Override
     public CategoryDto addCategory(NewCategoryDto newCategoryDto) {
+        log.info("Adding category with name: {}", newCategoryDto.getName());
         validateCategoryName(newCategoryDto.getName());
-        
+
         if (categoryRepository.existsByName(newCategoryDto.getName())) {
             throw new ConflictException("Category with name " + newCategoryDto.getName() + " already exists");
         }
-        
+
         Category category = Category.builder()
                 .name(newCategoryDto.getName())
                 .build();
 
         Category saved = categoryRepository.save(category);
-        log.info("Added category: {}", saved.getName());
+        log.info("Added category: {} with id: {}", saved.getName(), saved.getId());
 
         return new CategoryDto(saved.getId(), saved.getName());
     }
 
     @Override
     public CategoryDto updateCategory(Long catId, CategoryDto categoryDto) {
+        log.info("Updating category with id: {} to name: {}", catId, categoryDto.getName());
         Category category = categoryRepository.findById(catId)
                 .orElseThrow(() -> new NotFoundException("Category with id " + catId + " not found"));
 
         validateCategoryName(categoryDto.getName());
-        
-        if (!category.getName().equals(categoryDto.getName()) && 
-            categoryRepository.existsByName(categoryDto.getName())) {
+
+        if (!category.getName().equals(categoryDto.getName()) &&
+                categoryRepository.existsByName(categoryDto.getName())) {
             throw new ConflictException("Category with name " + categoryDto.getName() + " already exists");
         }
 
@@ -68,6 +70,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public void deleteCategory(Long catId) {
+        log.info("Deleting category with id: {}", catId);
         Category category = categoryRepository.findById(catId)
                 .orElseThrow(() -> new NotFoundException("Category with id " + catId + " not found"));
 
@@ -84,12 +87,23 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional(readOnly = true)
     public List<CategoryDto> getCategories(int from, int size) {
-        Pageable pageable = PageRequest.of(from / size, size);
+        log.info("Getting categories with from={}, size={}", from, size);
+
+        // Защита от некорректных значений
+        int safeFrom = Math.max(from, 0);
+        int safeSize = size > 0 ? Math.min(size, 100) : 10;
+        int page = safeFrom / safeSize;
+
+        Pageable pageable = PageRequest.of(page, safeSize);
+        log.debug("Pageable: page={}, size={}", page, safeSize);
+
         List<Category> categories = categoryRepository.findAll(pageable).getContent();
+        log.info("Found {} categories", categories.size());
 
         // Возвращаем пустой список вместо null
         if (categories == null || categories.isEmpty()) {
-            return List.of();  // или Collections.emptyList()
+            log.debug("No categories found, returning empty list");
+            return List.of();
         }
 
         return categories.stream()
@@ -100,6 +114,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     @Transactional(readOnly = true)
     public CategoryDto getCategoryById(Long catId) {
+        log.info("Getting category by id: {}", catId);
         Category category = categoryRepository.findById(catId)
                 .orElseThrow(() -> new NotFoundException("Category with id " + catId + " not found"));
         return mapToDto(category);
