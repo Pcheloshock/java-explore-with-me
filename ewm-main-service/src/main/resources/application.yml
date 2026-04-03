@@ -1,13 +1,19 @@
 server:
   port: 8080
+  shutdown: graceful
+  error:
+    include-message: always
+    include-binding-errors: always
 
 spring:
   application:
     name: ewm-main-service
+  main:
+    allow-bean-definition-overriding: true
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:6542/ewm}
-    username: ${SPRING_DATASOURCE_USERNAME:admin}
-    password: ${SPRING_DATASOURCE_PASSWORD:admin}
+    url: jdbc:postgresql://ewm-db:5432/ewm
+    username: admin
+    password: admin
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -15,26 +21,27 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQL10Dialect
-        format_sql: true
-    show-sql: true
+        format_sql: false
+        jdbc:
+          batch_size: 20
+    show-sql: false
+    open-in-view: false
   sql:
     init:
       mode: always
+  mvc:
+    throw-exception-if-no-handler-found: true
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: UTC
+    serialization:
+      write-dates-as-timestamps: false
 
 stats-service:
-  url: ${STATS_SERVICE_URL:http://localhost:9090}
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: always
+  url: ${STATS_SERVICE_URL:http://ewm-stats-service:9090}
 
 logging:
   level:
-    ru.practicum: DEBUG
-    org.springframework.web: INFO
-    org.hibernate: INFO
+    ru.practicum: INFO
+    org.springframework: WARN
+    org.hibernate: WARN
