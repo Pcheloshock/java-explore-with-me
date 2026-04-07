@@ -18,38 +18,38 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 public class StatsController {
-    
+
     private final StatsService statsService;
-    
+
     @PostMapping("/hit")
     @ResponseStatus(HttpStatus.CREATED)
     public void addHit(@Valid @RequestBody HitDto hitDto) {
         log.info("Получен запрос на сохранение статистики: {}", hitDto);
         statsService.addHit(hitDto);
     }
-    
+
     @GetMapping("/stats")
     public List<ViewStatsDto> getStats(
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") 
-            @NotNull(message = "Start date cannot be null") 
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+            @NotNull(message = "Start date cannot be null")
             LocalDateTime start,
-            
-            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") 
-            @NotNull(message = "End date cannot be null") 
+
+            @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+            @NotNull(message = "End date cannot be null")
             LocalDateTime end,
-            
-            @RequestParam(required = false) 
+
+            @RequestParam(required = false)
             List<String> uris,
-            
-            @RequestParam(defaultValue = "false") 
+
+            @RequestParam(defaultValue = "false")
             Boolean unique) {
-        
+
         if (start.isAfter(end)) {
             log.error("Start date {} is after end date {}", start, end);
             throw new IllegalArgumentException("Start date must be before end date");
         }
-        
-        log.info("Получен запрос на получение статистики с {} по {}, uris: {}, unique: {}", 
+
+        log.info("Получен запрос на получение статистики с {} по {}, uris: {}, unique: {}",
                 start, end, uris, unique);
         return statsService.getStats(start, end, uris, unique);
     }
