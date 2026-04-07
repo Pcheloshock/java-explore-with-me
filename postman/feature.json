@@ -936,9 +936,9 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "const responseCode = pm.response.code;",
+                  "const respCode = pm.response.code;",
                   "pm.test('Status code is 204 or 409', function () {",
-                  "    pm.expect([204, 409]).to.include(responseCode);",
+                  "    pm.expect([204, 409]).to.include(respCode);",
                   "});"
                 ],
                 "type": "text/javascript"
