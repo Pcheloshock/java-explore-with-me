@@ -147,9 +147,9 @@ public class PrivateRequestServiceImpl implements PrivateRequestService {
             throw new NotFoundException("User is not the initiator of this event");
         }
 
-        //if (event.getParticipantLimit() == 0) {
-        //    throw new BadRequestException("Event has no participant limit");
-        //}
+        if (event.getParticipantLimit() == 0) {
+            throw new BadRequestException("Event has no participant limit");
+        }
 
         long confirmedRequests = requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED);
         long availableSlots = event.getParticipantLimit() - confirmedRequests;

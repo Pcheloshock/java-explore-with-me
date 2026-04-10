@@ -6,6 +6,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.main.dto.CommentDto;
+import ru.practicum.main.exception.BadRequestException;
 import ru.practicum.main.dto.NewCommentDto;
 import ru.practicum.main.dto.UpdateCommentRequest;
 import ru.practicum.main.service.CommentService;
@@ -34,15 +35,27 @@ public class PrivateCommentController {
                                             @RequestParam(defaultValue = "0") int from,
                                             @RequestParam(defaultValue = "10") int size) {
         log.info("GET /users/{}/comments with from={}, size={}", userId, from, size);
-        return commentService.getUserComments(userId, PageRequest.of(from / size, size));
+
+        // Валидация параметров пагинации
+        if (from < 0) {
+            throw new BadRequestException("Parameter 'from' must be non-negative");
+        }
+        if (size <= 0) {
+            throw new BadRequestException("Parameter 'size' must be positive");
+        }
+        if (size > 100) {
+            throw new BadRequestException("Parameter 'size' cannot exceed 100");
+        }
+
+        int page = from / size;
+        return commentService.getUserComments(userId, PageRequest.of(page, size));
     }
 
-    @PatchMapping("/{commentId}")
+    @PatchMapping
     public CommentDto updateComment(@PathVariable Long userId,
-                                    @PathVariable Long commentId,
                                     @Valid @RequestBody UpdateCommentRequest updateRequest) {
-        log.info("PATCH /users/{}/comments/{}", userId, commentId);
-        return commentService.updateComment(userId, commentId, updateRequest);
+        log.info("PATCH /users/{}/comments with commentId={}", userId, updateRequest.getCommentId());
+        return commentService.updateComment(userId, updateRequest);
     }
 
     @DeleteMapping("/{commentId}")

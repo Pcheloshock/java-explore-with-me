@@ -104,13 +104,8 @@ public class CommentServiceImpl implements CommentService {
             throw new ConflictException("Only participants or initiator can comment on event");
         }
 
-        Comment comment = Comment.builder()
-                .text(newCommentDto.getText())
-                .event(event)
-                .author(author)
-                .createdOn(LocalDateTime.now())
-                .status(CommentStatus.PENDING)
-                .build();
+        // Используем маппер для создания сущности
+        Comment comment = CommentMapper.toEntity(newCommentDto, event, author);
 
         Comment saved = commentRepository.save(comment);
         log.info("Created comment {} for event {}", saved.getId(), event.getId());
@@ -133,7 +128,8 @@ public class CommentServiceImpl implements CommentService {
     }
 
     @Override
-    public CommentDto updateComment(Long userId, Long commentId, UpdateCommentRequest updateRequest) {
+    public CommentDto updateComment(Long userId, UpdateCommentRequest updateRequest) {
+        Long commentId = updateRequest.getCommentId();
         log.info("User {} updating comment {}", userId, commentId);
 
         Comment comment = commentRepository.findById(commentId)

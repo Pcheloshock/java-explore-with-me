@@ -1,8 +1,13 @@
 package ru.practicum.main.mapper;
 
 import ru.practicum.main.dto.CommentDto;
+import ru.practicum.main.dto.NewCommentDto;
 import ru.practicum.main.model.Comment;
+import ru.practicum.main.model.CommentStatus;
+import ru.practicum.main.model.Event;
 import ru.practicum.main.model.User;
+
+import java.time.LocalDateTime;
 
 public class CommentMapper {
 
@@ -25,5 +30,19 @@ public class CommentMapper {
         dto.setStatus(comment.getStatus());
 
         return dto;
+    }
+
+    public static Comment toEntity(NewCommentDto newCommentDto, Event event, User author) {
+        if (newCommentDto == null) {
+            return null;
+        }
+
+        return Comment.builder()
+                .text(newCommentDto.getText())
+                .event(event)
+                .author(author)
+                .createdOn(LocalDateTime.now())
+                .status(CommentStatus.PENDING)
+                .build();
     }
 }

@@ -544,7 +544,7 @@
           }
         },
         {
-          "name": "POST /users/{userId}/comments - Попытка комментария от не-участника (должен быть 409)",
+          "name": "PATCH /users/{userId}/comments - Попытка обновить чужой комментарий (должен быть 409)",
           "event": [
             {
               "listen": "test",
@@ -559,7 +559,7 @@
             }
           ],
           "request": {
-            "method": "POST",
+            "method": "PATCH",
             "header": [
               {
                 "key": "Content-Type",
@@ -568,12 +568,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"text\": \"This comment should not be allowed\",\n    \"eventId\": {{eventId}}\n}"
+              "raw": "{\n    \"commentId\": {{commentId}},\n    \"text\": \"Trying to update someone else's comment\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/users/{{nonParticipantId}}/comments",
+              "raw": "{{baseUrl}}/users/{{initiatorId}}/comments",
               "host": ["{{baseUrl}}"],
-              "path": ["users", "{{nonParticipantId}}", "comments"]
+              "path": ["users", "{{initiatorId}}", "comments"]
             }
           }
         },
@@ -618,7 +618,7 @@
           }
         },
         {
-          "name": "PATCH /users/{userId}/comments/{commentId} - Обновить комментарий",
+          "name": "PATCH /users/{userId}/comments - Обновить комментарий",
           "event": [
             {
               "listen": "test",
@@ -648,46 +648,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"text\": \"This is an UPDATED test comment\"\n}"
+              "raw": "{\n    \"commentId\": {{commentId}},\n    \"text\": \"This is an UPDATED test comment\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/users/{{participantId}}/comments/{{commentId}}",
+              "raw": "{{baseUrl}}/users/{{participantId}}/comments",
               "host": ["{{baseUrl}}"],
-              "path": ["users", "{{participantId}}", "comments", "{{commentId}}"]
-            }
-          }
-        },
-        {
-          "name": "PATCH /users/{userId}/comments/{commentId} - Попытка обновить чужой комментарий (должен быть 409)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Status code is 409 Conflict', function () {",
-                  "    pm.response.to.have.status(409);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"text\": \"Trying to update someone else's comment\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/users/{{initiatorId}}/comments/{{commentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{initiatorId}}", "comments", "{{commentId}}"]
+              "path": ["users", "{{participantId}}", "comments"]
             }
           }
         },

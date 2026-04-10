@@ -17,7 +17,7 @@ public interface CommentService {
     // Private методы
     CommentDto addComment(Long userId, NewCommentDto newCommentDto);
     List<CommentDto> getUserComments(Long userId, Pageable pageable);
-    CommentDto updateComment(Long userId, Long commentId, UpdateCommentRequest updateRequest);
+    CommentDto updateComment(Long userId, UpdateCommentRequest updateRequest);
     void deleteUserComment(Long userId, Long commentId);
 
     // Public методы
