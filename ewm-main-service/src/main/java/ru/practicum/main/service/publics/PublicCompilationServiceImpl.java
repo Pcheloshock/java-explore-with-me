@@ -9,10 +9,12 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.main.dto.CompilationDto;
 import ru.practicum.main.dto.EventShortDto;
 import ru.practicum.main.exception.NotFoundException;
+import ru.practicum.main.model.CommentStatus;
 import ru.practicum.main.model.Compilation;
 import ru.practicum.main.model.Event;
 import ru.practicum.main.repository.CompilationRepository;
 import ru.practicum.main.repository.ParticipationRequestRepository;
+import ru.practicum.main.repository.comment.CommentRepository;
 import ru.practicum.main.model.RequestStatus;
 
 import java.util.List;
@@ -26,12 +28,12 @@ public class PublicCompilationServiceImpl implements PublicCompilationService {
 
     private final CompilationRepository compilationRepository;
     private final ParticipationRequestRepository requestRepository;
+    private final CommentRepository commentRepository;
 
     @Override
     public List<CompilationDto> getCompilations(Boolean pinned, int from, int size) {
         log.info("Getting compilations with pinned={}, from={}, size={}", pinned, from, size);
 
-        // Защита от деления на ноль и некорректных значений
         int safeFrom = Math.max(from, 0);
         int safeSize = size > 0 ? Math.min(size, 100) : 10;
         int page = safeFrom / safeSize;
@@ -50,7 +52,6 @@ public class PublicCompilationServiceImpl implements PublicCompilationService {
 
         log.info("Found {} compilations", compilations.size());
 
-        // Возвращаем пустой список вместо null
         if (compilations == null || compilations.isEmpty()) {
             log.debug("No compilations found, returning empty list");
             return List.of();
@@ -86,6 +87,7 @@ public class PublicCompilationServiceImpl implements PublicCompilationService {
 
     private EventShortDto mapEventToShortDto(Event event) {
         long confirmedRequests = requestRepository.countByEventIdAndStatus(event.getId(), RequestStatus.CONFIRMED);
+        long commentsCount = commentRepository.countByEventIdAndStatus(event.getId(), CommentStatus.PUBLISHED);
 
         return new EventShortDto(
                 event.getId(),
@@ -96,7 +98,8 @@ public class PublicCompilationServiceImpl implements PublicCompilationService {
                 new ru.practicum.main.dto.UserShortDto(event.getInitiator().getId(), event.getInitiator().getName()),
                 event.getPaid(),
                 event.getTitle(),
-                0L
+                0L,
+                commentsCount
         );
     }
 }

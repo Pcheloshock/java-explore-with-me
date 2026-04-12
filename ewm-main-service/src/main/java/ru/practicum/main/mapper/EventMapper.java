@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 public class EventMapper {
 
     private EventMapper() {
-        // Приватный конструктор для утилитарного класса
     }
 
     public static EventShortDto toShortDto(Event event) {
@@ -30,6 +29,7 @@ public class EventMapper {
         dto.setPaid(event.getPaid());
         dto.setTitle(event.getTitle());
         dto.setViews(0L);
+        dto.setCommentsCount(0L); // НОВОЕ: по умолчанию 0
 
         return dto;
     }
@@ -56,12 +56,13 @@ public class EventMapper {
         dto.setState(event.getState());
         dto.setTitle(event.getTitle());
         dto.setViews(0L);
+        dto.setCommentsCount(0L); // НОВОЕ: по умолчанию 0
 
         return dto;
     }
 
-    // НОВЫЙ МЕТОД: toFullDto с views и confirmedRequests
-    public static EventFullDto toFullDto(Event event, Long views, Long confirmedRequests) {
+    // НОВЫЙ МЕТОД: toFullDto с views, confirmedRequests и commentsCount
+    public static EventFullDto toFullDto(Event event, Long views, Long confirmedRequests, Long commentsCount) {
         EventFullDto dto = toFullDto(event);
         if (dto != null) {
             if (views != null) {
@@ -70,35 +71,31 @@ public class EventMapper {
             if (confirmedRequests != null) {
                 dto.setConfirmedRequests(confirmedRequests);
             }
+            if (commentsCount != null) {
+                dto.setCommentsCount(commentsCount);
+            }
         }
         return dto;
     }
 
-    // Существующий метод toFullDto с views
+    // Перегруженные методы для обратной совместимости
+    public static EventFullDto toFullDto(Event event, Long views, Long confirmedRequests) {
+        return toFullDto(event, views, confirmedRequests, 0L);
+    }
+
     public static EventFullDto toFullDto(Event event, Long views) {
-        return toFullDto(event, views, null);
+        return toFullDto(event, views, null, 0L);
     }
 
     public static List<EventShortDto> toShortDtoList(List<Event> events, Map<Long, Long> viewsMap) {
-        if (events == null) {
-            return Collections.emptyList();
-        }
-
-        return events.stream()
-                .map(event -> {
-                    EventShortDto dto = toShortDto(event);
-                    if (dto != null && viewsMap != null) {
-                        dto.setViews(viewsMap.getOrDefault(event.getId(), 0L));
-                    }
-                    return dto;
-                })
-                .collect(Collectors.toList());
+        return toShortDtoList(events, viewsMap, null, null);
     }
 
-    // НОВЫЙ МЕТОД: toShortDtoList с views и confirmedRequests
+    // НОВЫЙ МЕТОД: toShortDtoList с views, confirmedRequests и commentsCount
     public static List<EventShortDto> toShortDtoList(List<Event> events,
                                                      Map<Long, Long> viewsMap,
-                                                     Map<Long, Long> confirmedRequestsMap) {
+                                                     Map<Long, Long> confirmedRequestsMap,
+                                                     Map<Long, Long> commentsCountMap) {
         if (events == null) {
             return Collections.emptyList();
         }
@@ -112,6 +109,9 @@ public class EventMapper {
                         }
                         if (confirmedRequestsMap != null) {
                             dto.setConfirmedRequests(confirmedRequestsMap.getOrDefault(event.getId(), 0L));
+                        }
+                        if (commentsCountMap != null) {
+                            dto.setCommentsCount(commentsCountMap.getOrDefault(event.getId(), 0L));
                         }
                     }
                     return dto;
