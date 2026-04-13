@@ -13,6 +13,7 @@ import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.mapper.EventMapper;
 import ru.practicum.main.model.*;
 import ru.practicum.main.repository.*;
+import ru.practicum.main.repository.comment.CommentRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,8 +27,9 @@ import java.util.stream.Collectors;
 public class AdminEventServiceImpl implements AdminEventService {
 
     private final EventRepository eventRepository;
+    private final CommentRepository commentRepository;
     private final CategoryRepository categoryRepository;
-    private final ParticipationRequestRepository requestRepository; // ДОБАВЛЕНО
+    private final ParticipationRequestRepository requestRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -52,22 +54,21 @@ public class AdminEventServiceImpl implements AdminEventService {
                 pageable
         ).getContent();
 
-        // ДОБАВЛЕНО: получаем подтверждённые запросы для всех событий
         if (events.isEmpty()) {
             return List.of();
         }
 
         List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
         Map<Long, Long> confirmedRequestsMap = requestRepository.countConfirmedRequestsByEventIds(eventIds);
-
-        // Получаем просмотры (если есть StatsClient)
+        Map<Long, Long> commentsCountMap = commentRepository.countPublishedCommentsByEventIds(eventIds);
         Map<Long, Long> viewsMap = getViewsForEvents(eventIds);
 
         return events.stream()
                 .map(event -> EventMapper.toFullDto(
                         event,
                         viewsMap.getOrDefault(event.getId(), 0L),
-                        confirmedRequestsMap.getOrDefault(event.getId(), 0L)
+                        confirmedRequestsMap.getOrDefault(event.getId(), 0L),
+                        commentsCountMap.getOrDefault(event.getId(), 0L)
                 ))
                 .collect(Collectors.toList());
     }
@@ -147,10 +148,10 @@ public class AdminEventServiceImpl implements AdminEventService {
         Event updated = eventRepository.save(event);
         log.info("Admin updated event: {}", updated.getTitle());
 
-        // ДОБАВЛЕНО: получаем confirmedRequests для ответа
         long confirmedRequests = requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED);
-        Long views = 0L; // можно получить из statsClient
+        long commentsCount = commentRepository.countByEventIdAndStatus(eventId, CommentStatus.PUBLISHED);
+        Long views = 0L;
 
-        return EventMapper.toFullDto(updated, views, confirmedRequests);
+        return EventMapper.toFullDto(updated, views, confirmedRequests, commentsCount);
     }
 }

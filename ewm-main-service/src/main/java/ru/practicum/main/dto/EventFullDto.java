@@ -39,4 +39,7 @@ public class EventFullDto {
     private EventState state;
     private String title;
     private Long views;
+
+    // НОВОЕ ПОЛЕ: количество комментариев
+    private Long commentsCount;
 }

@@ -13,10 +13,12 @@ import ru.practicum.main.dto.EventShortDto;
 import ru.practicum.main.exception.BadRequestException;
 import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.mapper.EventMapper;
+import ru.practicum.main.model.CommentStatus;
 import ru.practicum.main.model.Event;
 import ru.practicum.main.model.EventState;
 import ru.practicum.main.repository.EventRepository;
 import ru.practicum.main.repository.ParticipationRequestRepository;
+import ru.practicum.main.repository.comment.CommentRepository; // ДОБАВЛЕНО
 import ru.practicum.stats.client.StatsClient;
 
 import javax.servlet.http.HttpServletRequest;
@@ -35,6 +37,7 @@ public class PublicEventServiceImpl implements PublicEventService {
 
     private final EventRepository eventRepository;
     private final ParticipationRequestRepository requestRepository;
+    private final CommentRepository commentRepository; // ДОБАВЛЕНО
     private final StatsClient statsClient;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -60,13 +63,21 @@ public class PublicEventServiceImpl implements PublicEventService {
             log.error("Failed to save hit: {}", e.getMessage());
         }
 
-        // Устанавливаем значения по умолчанию
-        if (rangeStart == null && rangeEnd == null) {
-            rangeStart = LocalDateTime.now();
+        // ВАЖНО: Устанавливаем значения по умолчанию для rangeStart и rangeEnd
+        LocalDateTime effectiveStart = rangeStart;
+        LocalDateTime effectiveEnd = rangeEnd;
+
+        if (effectiveStart == null && effectiveEnd == null) {
+            effectiveStart = LocalDateTime.now();
+            effectiveEnd = LocalDateTime.now().plusYears(1);
+        } else if (effectiveStart == null) {
+            effectiveStart = LocalDateTime.now().minusYears(1);
+        } else if (effectiveEnd == null) {
+            effectiveEnd = LocalDateTime.now().plusYears(1);
         }
 
         // Проверка дат
-        if (rangeStart != null && rangeEnd != null && rangeStart.isAfter(rangeEnd)) {
+        if (effectiveStart.isAfter(effectiveEnd)) {
             throw new BadRequestException("Start date must be before end date");
         }
 
@@ -74,16 +85,18 @@ public class PublicEventServiceImpl implements PublicEventService {
         Pageable pageable = PageRequest.of(page, size);
 
         List<Event> events = eventRepository.findAllPublished(
-                EventState.PUBLISHED, text, categories, paid, rangeStart, rangeEnd, pageable);
+                EventState.PUBLISHED, text, categories, paid,
+                effectiveStart, effectiveEnd, pageable);
 
         if (events == null || events.isEmpty()) {
             return Collections.emptyList();
         }
 
-        // ИЗМЕНЕНО: получаем confirmedRequests ДО фильтрации onlyAvailable
+        // Получаем подтвержденные запросы
         List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
         Map<Long, Long> confirmedRequestsMap = requestRepository.countConfirmedRequestsByEventIds(eventIds);
-        Map<Long, Long> viewsMap = getViewsForEventsUnique(eventIds, rangeStart, rangeEnd);
+        Map<Long, Long> commentsCountMap = commentRepository.countPublishedCommentsByEventIds(eventIds);
+        Map<Long, Long> viewsMap = getViewsForEventsUnique(eventIds, effectiveStart, effectiveEnd);
 
         if (onlyAvailable) {
             events = events.stream()
@@ -99,10 +112,10 @@ public class PublicEventServiceImpl implements PublicEventService {
 
             // Обновляем eventIds после фильтрации
             eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
+            commentsCountMap = commentRepository.countPublishedCommentsByEventIds(eventIds);
         }
 
-        // ИЗМЕНЕНО: используем метод маппинга с confirmedRequests
-        return EventMapper.toShortDtoList(events, viewsMap, confirmedRequestsMap);
+        return EventMapper.toShortDtoList(events, viewsMap, confirmedRequestsMap, commentsCountMap);
     }
 
     @Override
@@ -127,11 +140,13 @@ public class PublicEventServiceImpl implements PublicEventService {
         }
 
         Long views = getViewsForEventUnique(id, event.getCreatedOn(), LocalDateTime.now());
-
-        // ДОБАВЛЕНО: получаем confirmedRequests
         long confirmedRequests = requestRepository.countByEventIdAndStatus(id, ru.practicum.main.model.RequestStatus.CONFIRMED);
 
-        return EventMapper.toFullDto(event, views, confirmedRequests);
+        // НОВОЕ: получаем количество комментариев
+        long commentsCount = commentRepository.countByEventIdAndStatus(id, CommentStatus.PUBLISHED);
+
+        // ИСПОЛЬЗУЕМ ОБНОВЛЕННЫЙ МЕТОД с комментариями
+        return EventMapper.toFullDto(event, views, confirmedRequests, commentsCount);
     }
 
     private Map<Long, Long> getViewsForEventsUnique(List<Long> eventIds, LocalDateTime start, LocalDateTime end) {

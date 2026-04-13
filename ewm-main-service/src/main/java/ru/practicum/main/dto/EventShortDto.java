@@ -25,4 +25,7 @@ public class EventShortDto {
     private Boolean paid;
     private String title;
     private Long views;
+
+    // НОВОЕ ПОЛЕ: количество комментариев
+    private Long commentsCount;
 }

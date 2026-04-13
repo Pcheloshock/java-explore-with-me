@@ -13,6 +13,7 @@ import ru.practicum.main.exception.NotFoundException;
 import ru.practicum.main.mapper.EventMapper;
 import ru.practicum.main.model.*;
 import ru.practicum.main.repository.*;
+import ru.practicum.main.repository.comment.CommentRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,7 +28,8 @@ public class PrivateEventServiceImpl implements PrivateEventService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
-    private final ParticipationRequestRepository requestRepository; // ДОБАВЛЕНО
+    private final ParticipationRequestRepository requestRepository;
+    private final CommentRepository commentRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -46,15 +48,16 @@ public class PrivateEventServiceImpl implements PrivateEventService {
             return List.of();
         }
 
-        // ДОБАВЛЕНО: получаем confirmedRequests для всех событий
         List<Long> eventIds = events.stream().map(Event::getId).collect(Collectors.toList());
         java.util.Map<Long, Long> confirmedRequestsMap = requestRepository.countConfirmedRequestsByEventIds(eventIds);
+        java.util.Map<Long, Long> commentsCountMap = commentRepository.countPublishedCommentsByEventIds(eventIds);
 
         return events.stream()
                 .map(event -> {
                     EventShortDto dto = EventMapper.toShortDto(event);
                     if (dto != null) {
                         dto.setConfirmedRequests(confirmedRequestsMap.getOrDefault(event.getId(), 0L));
+                        dto.setCommentsCount(commentsCountMap.getOrDefault(event.getId(), 0L));
                     }
                     return dto;
                 })
@@ -99,8 +102,7 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         Event saved = eventRepository.save(event);
         log.info("Created event: {} by user: {}", saved.getTitle(), userId);
 
-        // confirmedRequests для нового события всегда 0
-        return EventMapper.toFullDto(saved, 0L, 0L);
+        return EventMapper.toFullDto(saved, 0L, 0L, 0L);
     }
 
     @Override
@@ -114,7 +116,9 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         }
 
         long confirmedRequests = requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED);
-        return EventMapper.toFullDto(event, 0L, confirmedRequests);
+        long commentsCount = commentRepository.countByEventIdAndStatus(eventId, CommentStatus.PUBLISHED);
+
+        return EventMapper.toFullDto(event, 0L, confirmedRequests, commentsCount);
     }
 
     @Override
@@ -186,10 +190,10 @@ public class PrivateEventServiceImpl implements PrivateEventService {
         Event updated = eventRepository.save(event);
         log.info("Updated event: {} by user: {}", updated.getTitle(), userId);
 
-        // ДОБАВЛЕНО: получаем confirmedRequests для ответа
         long confirmedRequests = requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED);
-        Long views = 0L; // можно получить из statsClient
+        long commentsCount = commentRepository.countByEventIdAndStatus(eventId, CommentStatus.PUBLISHED);
+        Long views = 0L;
 
-        return EventMapper.toFullDto(updated, views, confirmedRequests);
+        return EventMapper.toFullDto(updated, views, confirmedRequests, commentsCount);
     }
 }
